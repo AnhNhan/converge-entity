@@ -1,0 +1,6 @@
+
+[defaults]
+encoding=Cp1252
+
+[repositories]
+lookup=C:\\Users\\AnhNhan\\SkyDrive\\dev\\anhnhan-utils\\modules
