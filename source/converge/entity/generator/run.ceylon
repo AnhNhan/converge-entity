@@ -12,8 +12,16 @@ import ceylon.file {
     lines
 }
 
+import converge.entity.model {
+    Alias,
+    Struct,
+    PackageStmt
+}
+
 import de.anhnhan.parser.parsec {
-    oneOrMore
+    oneOrMore,
+    Ok,
+    Error
 }
 
 "Run the module `converge.entity.generator`."
@@ -33,7 +41,13 @@ shared void run() {
         value parse = oneOrMore(despace(pTop));
 
         value result = parse(contents);
-        print(result);
+        if (is Error<Anything, Character> result)
+        {
+            print(result);
+            return;
+        }
+        assert (is Ok<[<Struct|PackageStmt|Alias>+], Character> result);
+        print(result.result);
 
         value start = system.nanoseconds;
         for (_ in 0..1_000)
