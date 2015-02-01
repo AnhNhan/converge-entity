@@ -15,6 +15,8 @@ interface AnnotationUse
     "Invokation arguments."
     shared formal
     Expression[] arguments;
+
+    string => "#``name````arguments nonempty then arguments else ""``";
 }
 
 shared

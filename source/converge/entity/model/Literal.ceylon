@@ -21,6 +21,8 @@ interface StringLiteral
 {
     shared actual formal
     String contents;
+
+    string => "\"``contents``\"";
 }
 
 shared
@@ -29,6 +31,8 @@ interface IntegerLiteral
 {
     shared actual formal
     Integer contents;
+
+    string => contents.string;
 }
 
 shared

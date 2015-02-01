@@ -16,6 +16,8 @@ interface TypeSpec
     "Template parameters."
     shared formal
     Expression[] parameters;
+
+    string => "``name``<``parameters``>";
 }
 
 shared

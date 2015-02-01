@@ -16,6 +16,8 @@ interface Alias
      types, it's a type union."
     shared formal
     [TypeSpec+] types;
+
+    string => "alias ``name`` ``types``";
 }
 
 shared

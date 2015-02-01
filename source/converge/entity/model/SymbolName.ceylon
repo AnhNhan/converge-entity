@@ -20,6 +20,8 @@ interface SymbolName
     "Whether this symbol is definitely at the top-level."
     shared default
     Boolean topLevel => namespace?.empty else false;
+
+    string => name + (namespace exists then " ``namespace else nothing``" else "");
 }
 
 shared

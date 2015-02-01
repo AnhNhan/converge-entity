@@ -20,6 +20,8 @@ interface FunctionCall
     "Template parameters."
     shared formal
     Expression[] parameters;
+
+    string => "``name``<``parameters``>(``arguments``)";
 }
 
 shared

@@ -11,7 +11,7 @@ interface StructModifier
         of abstractStruct
 {}
 
-shared object abstractStruct satisfies StructModifier {}
+shared object abstractStruct satisfies StructModifier { string = "abstract"; }
 
 shared
 interface Struct
@@ -34,6 +34,18 @@ interface Struct
 
     shared formal
     AnnotationUse[] annotations;
+
+    string => "Struct ``name`` concretizes ``concretizing else "none"``
+               {
+                   modifiers = ``modifiers``
+                   parameters = ``parameters``
+                   annotations = ``annotations``
+                   members
+                   {
+               ``members*.string.map((_) => "        " + _).interpose("\n").fold("")(plus<String>)``
+                   }
+               }
+                 ";
 }
 
 shared

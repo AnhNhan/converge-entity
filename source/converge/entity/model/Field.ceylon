@@ -20,6 +20,8 @@ interface Field
 
     shared formal
     Set<StructModifier> modifiers;
+
+    string => "field ``name``: ``type else "String (default)"`` ``annotations nonempty then annotations else ""``";
 }
 
 shared
