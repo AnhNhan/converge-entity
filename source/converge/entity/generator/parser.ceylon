@@ -115,14 +115,14 @@ StringParser<TypeSpec?> isSpec = tryWhen(keyword("is"), despace(pTypeSpec));
 StringParser<[Character+]?> nativeAsSpec = tryWhen(keyword("native_as"), despace(oneOrMore(or(identChar, literal('\\')))));
 
 StringParser<Field|FunctionCall> pStructMember
-        = or(pField, pFunctionCall);
+        = or(pFunctionCall, pField);
 StringParser<<Field|FunctionCall>[]> pStructMembers
         = between(lexScopeStart, despace(pStructMember), lexScopeEnd);
 
 StringParser<Literal> despace<Literal>(StringParser<Literal> parser)
         => ignoreSurrounding<Literal, Character>(zeroOrMore(anyOf(pComment, whitespace)))(parser);
 
-StringParser identChar = satisfy(_or(_or(Character.letter, Character.digit), (Character _) => _ in "-$"));
+StringParser identChar = satisfy(_or(_or(Character.letter, Character.digit), (Character _) => _ in "_-$"));
 
 StringParser<[Character+]> lIdent
         => apply(
@@ -276,7 +276,10 @@ void testStruct()
         "abstract struct Foo {}",
         "struct Foo<val, Val> {}",
         "struct Foo { foo bar baz }",
-        "struct Foo<foo> is Bar<foo> { do_something(\"hi\") foo:Foo<123> bar }"
+        "struct Foo is Foo { foo bar baz }",
+        "struct Foo<foo> is Bar<foo> { do_something(\"hi\") foo:Foo<123> bar }",
+        "struct DiscussionTransaction is TransactionEntity<Discussion, \"DISQ\"> {}",
+        "struct User is TransactionAwareEntity<UserTransaction> { username_canon #unique #normalize(lowercase, to_ascii) }"
     }.collect(assertCanParseWithNothingLeft(pStruct)).collect(print);
 }
 
