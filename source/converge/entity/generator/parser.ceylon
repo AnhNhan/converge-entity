@@ -280,7 +280,7 @@ void testStruct()
         "struct Foo<foo> is Bar<foo> { do_something(\"hi\") foo:Foo<123> bar }",
         "struct DiscussionTransaction is TransactionEntity<Discussion, \"DISQ\"> {}",
         "struct User is TransactionAwareEntity<UserTransaction> { username_canon #unique #normalize(lowercase, to_ascii) }"
-    }.collect(assertCanParseWithNothingLeft(pStruct)).collect(print);
+    }.collect(assertCanParseWithNothingLeft(pStruct));
 }
 
 StringParseResult<Field> pField({Character*} input)
@@ -337,7 +337,7 @@ void testField()
         "foo : Bar #bar #baz",
         "abstract foo",
         "abstract foo: Bar"
-    }.collect(assertCanParseWithNothingLeft(pField)).collect(print);
+    }.collect(assertCanParseWithNothingLeft(pField));
 
     {
         "foo:",
@@ -382,7 +382,7 @@ void testOptTypeParamaters()
         "<foo>",
         "<foo, bar>",
         "<foo, bar()>"
-    }.collect(assertCanParseWithNothingLeft(optTypeParameters)).collect(print);
+    }.collect(assertCanParseWithNothingLeft(optTypeParameters));
 }
 
 test

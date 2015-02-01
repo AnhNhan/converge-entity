@@ -44,8 +44,7 @@ interface Struct
                    {
                ``members*.string.map((_) => "        " + _).interpose("\n").fold("")(plus<String>)``
                    }
-               }
-                 ";
+               }";
 }
 
 shared
