@@ -25,7 +25,7 @@ interface Struct
     Set<StructModifier> modifiers;
 
     shared formal
-    TypeSpec? concretizing;
+    SingleTypeSpec? concretizing;
 
     "Template parameters."
     shared formal
@@ -50,7 +50,7 @@ interface Struct
 }
 
 shared
-Struct struct(String structName, Set<StructModifier> structModifiers, TypeSpec? concretizes, DeclarationParameter[] templateParameters, <Field|FunctionCall>[] structMembers, AnnotationUse[] structAnnotations)
+Struct struct(String structName, Set<StructModifier> structModifiers, SingleTypeSpec? concretizes, DeclarationParameter[] templateParameters, <Field|FunctionCall>[] structMembers, AnnotationUse[] structAnnotations)
 {
     object struct
             satisfies Struct

@@ -21,7 +21,7 @@ interface FunctionCall
     shared formal
     Expression[] parameters;
 
-    string => "``name``<``parameters``>(``arguments``)";
+    string => "``name````!parameters.empty then "<" + parameters*.string.interpose(", ").fold("")(plus<String>) + ">" else ""``(``arguments*.string.interpose(", ").fold("")(plus<String>)``)";
 }
 
 shared

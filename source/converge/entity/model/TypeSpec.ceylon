@@ -8,7 +8,34 @@
 
 shared
 interface TypeSpec
+        of MultiTypeSpec | SingleTypeSpec
         satisfies Expression
+{}
+
+shared
+interface MultiTypeSpec
+        satisfies TypeSpec
+{
+    shared formal
+    [TypeSpec+] typeSpecs;
+
+    string => typeSpecs*.string.interpose("|").fold("")(plus<String>);
+}
+
+shared
+MultiTypeSpec multiTypeSpec([TypeSpec+] speccedTypes)
+{
+    object multiTypeSpec
+            satisfies MultiTypeSpec
+    {
+        typeSpecs = speccedTypes;
+    }
+    return multiTypeSpec;
+}
+
+shared
+interface SingleTypeSpec
+        satisfies TypeSpec
 {
     shared formal
     String name;
@@ -17,14 +44,14 @@ interface TypeSpec
     shared formal
     Expression[] parameters;
 
-    string => "``name``<``parameters``>";
+    string => "``name````!parameters.empty then "<" + parameters*.string.interpose(", ").fold("")(plus<String>) + ">" else ""``";
 }
 
 shared
-TypeSpec typeSpec(String typeName, Expression[] typeParameters)
+SingleTypeSpec singleTypeSpec(String typeName, Expression[] typeParameters)
 {
     object typeSpec
-            satisfies TypeSpec
+            satisfies SingleTypeSpec
     {
         name = typeName;
         parameters = typeParameters;

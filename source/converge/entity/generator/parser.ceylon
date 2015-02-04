@@ -29,7 +29,7 @@ import converge.entity.model {
     integerLiteral,
     StringLiteral,
     Alias,
-    typeSpec,
+    singleTypeSpec,
     Expression,
     Struct,
     struct,
@@ -38,7 +38,7 @@ import converge.entity.model {
     typeAlias,
     functionCall,
     IntegerLiteral,
-    TypeSpec,
+    SingleTypeSpec,
     Field,
     packageStmt,
     annotationUse,
@@ -47,7 +47,9 @@ import converge.entity.model {
     declarationParameter,
     valueSymbol,
     ValueSymbol,
-    uniqueField
+    uniqueField,
+    TypeSpec,
+    multiTypeSpec
 }
 
 import de.anhnhan.parser.parsec {
@@ -110,13 +112,14 @@ StringParser lexScopeStart = literal('{');
 StringParser lexScopeEnd = literal('}');
 
 StringParser packageNamePartSeparator = literal('.');
+StringParser typeUnionSeparator = literal('|');
 
 StringParser annotationMarker = literal('#');
 
 StringParser<Character[]> abstractKeyword = keyword("abstract");
 StringParser<Character[]> uniqueKeyword = keyword("unique");
 
-StringParser<TypeSpec?> isSpec = tryWhen(keyword("is"), despace(pTypeSpec));
+StringParser<SingleTypeSpec?> isSpec = tryWhen(keyword("is"), despace(pSingleTypeSpec));
 StringParser<[Character+]?> nativeAsSpec = tryWhen(keyword("native_as"), despace(oneOrMore(or(identChar, literal('\\')))));
 
 StringParser<Field|FunctionCall> pStructMember
@@ -173,12 +176,12 @@ StringParseResult<Alias> pAlias({Character*} input)
         return aliasArrow.toJustError.appendMessage("Expected: =>");
     }
 
-    value aliasTypes = separatedBy(pTypeSpec, literal('|'))(aliasArrow.rest);
+    value aliasTypes = separatedBy(pSingleTypeSpec, literal('|'))(aliasArrow.rest);
     if (is Error<Anything, Character> aliasTypes)
     {
         return aliasTypes.toJustError.appendMessage("Invalid TypeSpec");
     }
-    assert (is Ok<[TypeSpec+], Character> aliasTypes);
+    assert (is Ok<[SingleTypeSpec+], Character> aliasTypes);
 
     return ok(typeAlias(aliasName, aliasTypes.result), aliasTypes.rest);
 }
@@ -227,10 +230,10 @@ StringParseResult<Struct> pStruct({Character*} input)
         {
             structTemplateParameters = [];
         }
-        TypeSpec? concretizes;
+        SingleTypeSpec? concretizes;
         String? nativeAs;
 
-        if (is Ok<TypeSpec?, Character> conc = despace(isSpec)(rest))
+        if (is Ok<SingleTypeSpec?, Character> conc = despace(isSpec)(rest))
         {
             concretizes = conc.result;
             rest = conc.rest;
@@ -285,6 +288,13 @@ void testStruct()
         "struct DiscussionTransaction is TransactionEntity<Discussion, \"DISQ\"> {}",
         "struct User is TransactionAwareEntity<UserTransaction> { username_canon #unique #normalize(lowercase, to_ascii) }"
     }.collect(assertCanParseWithNothingLeft(pStruct));
+
+    {
+        "struct foo {}",
+        "struct Foo is bar {}",
+        "struct Foo is Bar? {}",
+        "struct Foo is Bar|Baz {}"
+    }.collect(assertCantParse(pStruct));
 }
 
 StringParseResult<Field> pField({Character*} input)
@@ -342,7 +352,13 @@ void testField()
     {
         "foo",
         "foo: Bar",
+        "foo: Bar?",
+        "foo: Bar|Baz",
+        "foo: Bar|Baz?",
+        "foo: Bar?|Baz",
+        "foo: Bar?|Baz?",
         "foo:Bar<Baz<bar()>>",
+        "foo:Bar<Baz<bar()>?>",
         "foo : Bar #bar #baz",
         "abstract foo",
         "abstract foo: Bar",
@@ -408,7 +424,36 @@ void testOptTypeParamatersNeg()
     }.collect(assertCantParse(optTypeParameters));
 }
 
-StringParseResult<TypeSpec> pTypeSpec({Character*} input)
+StringParser<TypeSpec> pTypeSpec
+        = apply(separatedBy(
+            ({Character*} input)
+                    => pSingleTypeSpec(input).bind
+                    {
+                        (single)
+                        {
+                            value rest = single.rest.skipWhile(Character.whitespace);
+                            if (exists nextChar = rest.first, nextChar == '?')
+                            {
+                                return ok(multiTypeSpec([single.result, singleTypeSpec("Null", [])]), rest.rest);
+                            }
+                            return single;
+                        };
+                        identity<Error<TypeSpec, Character>>;
+                    }
+            ,
+            despace(typeUnionSeparator)
+        ),
+        ([TypeSpec+] specs)
+        {
+            if (specs.size == 1, is SingleTypeSpec single = specs.first)
+            {
+                return single;
+            }
+
+            return multiTypeSpec(specs);
+        });
+
+StringParseResult<SingleTypeSpec> pSingleTypeSpec({Character*} input)
 {
     value typeName = uIdent(input);
     switch (typeName)
@@ -418,7 +463,7 @@ StringParseResult<TypeSpec> pTypeSpec({Character*} input)
         value typeSpecRest = typeName.rest.skipWhile(Character.whitespace);
         return optTypeParameters(typeSpecRest).bind
         {
-            (_ok) => ok(typeSpec(name, _ok.result), _ok.rest);
+            (_ok) => ok(singleTypeSpec(name, _ok.result), _ok.rest);
             (error) => error.toJustError.appendMessage("Invalid type parameters");
         };
     }
@@ -463,11 +508,14 @@ StringParser<[DeclarationParameter+]> pTypeParameterDeclaration
 StringParseResult<FunctionCall> pFunctionCall({Character*} input, ParseResult<[Character+],Character> funNameR = lIdent(input))
         => funNameR.bind
         {
-            (funNameR) => bindResultOk<FunctionCall, Expression[], Character>(optTypeParameters, (typeParamR) => pFunctionArguments(funNameR.rest).bind
-            {
-                (_ok) => ok(functionCall(String(funNameR.result), typeParamR.result, _ok.result), _ok.rest);
-                (error) => error.toJustError;
-            })(funNameR.rest);
+            (funNameR) => bindResultOk<FunctionCall, Expression[], Character>(
+                optTypeParameters,
+                (typeParamR) => pFunctionArguments(funNameR.rest).bind
+                {
+                    (_ok) => ok(functionCall(String(funNameR.result), typeParamR.result, _ok.result), _ok.rest);
+                    (error) => error.toJustError;
+                }
+            )(funNameR.rest);
             (error) => error.toJustError;
         };
 

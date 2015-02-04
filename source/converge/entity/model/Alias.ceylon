@@ -15,13 +15,13 @@ interface Alias
     "When only one type, it's a regular substitution. If there are multiple
      types, it's a type union."
     shared formal
-    [TypeSpec+] types;
+    [SingleTypeSpec+] types;
 
     string => "alias ``name`` ``types``";
 }
 
 shared
-Alias typeAlias(String aliasName, [TypeSpec+] aliasedTypes)
+Alias typeAlias(String aliasName, [SingleTypeSpec+] aliasedTypes)
 {
     object typeAlias
             satisfies Alias
