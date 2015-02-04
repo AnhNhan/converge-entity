@@ -9,9 +9,11 @@
 shared
 interface StructModifier
         of abstractStruct
+         | uniqueField
 {}
 
 shared object abstractStruct satisfies StructModifier { string = "abstract"; }
+shared object uniqueField satisfies StructModifier { string = "unique"; }
 
 shared
 interface Struct
@@ -27,7 +29,7 @@ interface Struct
 
     "Template parameters."
     shared formal
-    <String->TypeSpec?>[] parameters;
+    DeclarationParameter[] parameters;
 
     shared formal
     <Field|FunctionCall>[] members;
@@ -48,7 +50,7 @@ interface Struct
 }
 
 shared
-Struct struct(String structName, Set<StructModifier> structModifiers, TypeSpec? concretizes, <String->TypeSpec?>[] templateParameters, <Field|FunctionCall>[] structMembers, AnnotationUse[] structAnnotations)
+Struct struct(String structName, Set<StructModifier> structModifiers, TypeSpec? concretizes, DeclarationParameter[] templateParameters, <Field|FunctionCall>[] structMembers, AnnotationUse[] structAnnotations)
 {
     object struct
             satisfies Struct

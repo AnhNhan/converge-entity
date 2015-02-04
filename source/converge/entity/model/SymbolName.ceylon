@@ -8,63 +8,43 @@
 
 shared
 interface SymbolName
-        of RelativeSymbol | FullyQualifiedSymbol
+        of TypeSymbol | ValueSymbol
         satisfies Expression
 {
     shared formal
     String name;
 
-    shared formal
-    String[]? namespace;
-
-    "Whether this symbol is definitely at the top-level."
-    shared default
-    Boolean topLevel => namespace?.empty else false;
-
-    string => name + (namespace exists then " ``namespace else nothing``" else "");
+    string => name;
 }
 
 shared
-interface RelativeSymbol
+interface TypeSymbol
         satisfies SymbolName
-{
-    shared actual
-    Null namespace => null;
-
-    shared formal variable
-    FullyQualifiedSymbol? resolvedSymbol;
-}
+{}
 
 shared
-interface FullyQualifiedSymbol
+interface ValueSymbol
         satisfies SymbolName
+{}
+
+shared
+TypeSymbol typeSymbol(String symbolName)
 {
-    shared actual formal
-    String[] namespace;
+    object symbol
+            satisfies TypeSymbol
+    {
+        name = symbolName;
+    }
+    return symbol;
 }
 
 shared
-RelativeSymbol relativeSymbol(String _name)
+ValueSymbol valueSymbol(String symbolName)
 {
-    object relativeSymbol
-            satisfies RelativeSymbol
+    object symbol
+            satisfies ValueSymbol
     {
-        name = _name;
-
-        shared actual variable
-        FullyQualifiedSymbol? resolvedSymbol = null;
+        name = symbolName;
     }
-    return relativeSymbol;
-}
-
-shared
-FullyQualifiedSymbol fullyQualifiedSymbol(String _name, String[] _namespace)
-{
-    object fullyQualifiedSymbol
-            satisfies FullyQualifiedSymbol
-    {
-        name = _name;
-        namespace = _namespace;
-    }
-    return fullyQualifiedSymbol;
+    return symbol;
 }

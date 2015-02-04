@@ -23,7 +23,6 @@ import ceylon.test {
 
 import converge.entity.model {
     StructModifier,
-    RelativeSymbol,
     AnnotationUse,
     FunctionCall,
     field,
@@ -42,9 +41,13 @@ import converge.entity.model {
     TypeSpec,
     Field,
     packageStmt,
-    relativeSymbol,
     annotationUse,
-    abstractStruct
+    abstractStruct,
+    DeclarationParameter,
+    declarationParameter,
+    valueSymbol,
+    ValueSymbol,
+    uniqueField
 }
 
 import de.anhnhan.parser.parsec {
@@ -89,11 +92,12 @@ import de.anhnhan.parser.parsec.test {
     assertCantParse
 }
 
-StringParser<Struct|PackageStmt|Alias> pTop
+StringParser<Struct|PackageStmt|Alias|FunctionCall> pTop
         = anyOf(
             pStruct,
             pAlias,
-            pPackage
+            pPackage,
+            pFunctionCall
         );
 
 StringParser typeSpecGenericStart = literal('<');
@@ -110,6 +114,7 @@ StringParser packageNamePartSeparator = literal('.');
 StringParser annotationMarker = literal('#');
 
 StringParser<Character[]> abstractKeyword = keyword("abstract");
+StringParser<Character[]> uniqueKeyword = keyword("unique");
 
 StringParser<TypeSpec?> isSpec = tryWhen(keyword("is"), despace(pTypeSpec));
 StringParser<[Character+]?> nativeAsSpec = tryWhen(keyword("native_as"), despace(oneOrMore(or(identChar, literal('\\')))));
@@ -171,7 +176,7 @@ StringParseResult<Alias> pAlias({Character*} input)
     value aliasTypes = separatedBy(pTypeSpec, literal('|'))(aliasArrow.rest);
     if (is Error<Anything, Character> aliasTypes)
     {
-        return aliasTypes.toJustError;
+        return aliasTypes.toJustError.appendMessage("Invalid TypeSpec");
     }
     assert (is Ok<[TypeSpec+], Character> aliasTypes);
 
@@ -193,7 +198,6 @@ StringParseResult<Struct> pStruct({Character*} input)
         return JustError(abstractModifierResult.rest, ["Exptected: struct keyword"]);
     }
 
-    // Re-using type spec, syntax is the same
     value structNameResult = despace(uIdent)(structKeyword.rest);
     switch (structNameResult)
     case (is Ok<[Character+], Character>)
@@ -203,13 +207,13 @@ StringParseResult<Struct> pStruct({Character*} input)
         variable
         value rest = structNameResult.rest.skipWhile(Character.whitespace);
 
-        <String->TypeSpec?>[] structTemplateParameters;
+        DeclarationParameter[] structTemplateParameters;
 
         if (exists nextChar = rest.first, nextChar == '<')
         {
             value paramResult = pTypeParameterDeclaration(structNameResult.rest);
             switch (paramResult)
-            case (is Ok<[<String->TypeSpec?>+], Character>)
+            case (is Ok<[DeclarationParameter+], Character>)
             {
                 structTemplateParameters = paramResult.result;
                 rest = paramResult.rest;
@@ -286,13 +290,18 @@ void testStruct()
 StringParseResult<Field> pField({Character*} input)
 {
     value abstractModifierResult = abstractKeyword(input);
+    value uniqueModifierResult = despace(uniqueKeyword)(abstractModifierResult.rest);
     value fieldModifiers = HashSet<StructModifier>();
     if (is Ok<Character[], Character> abstractModifierResult)
     {
         fieldModifiers.add(abstractStruct);
     }
+    if (is Ok<Anything, Character> uniqueModifierResult)
+    {
+        fieldModifiers.add(uniqueField);
+    }
 
-    value identResult = despace(lIdent)(abstractModifierResult.rest);
+    value identResult = despace(lIdent)(uniqueModifierResult.rest);
     switch (identResult)
     case (is Ok<[Character+], Character>)
     {
@@ -336,7 +345,9 @@ void testField()
         "foo:Bar<Baz<bar()>>",
         "foo : Bar #bar #baz",
         "abstract foo",
-        "abstract foo: Bar"
+        "abstract foo: Bar",
+        "unique foo",
+        "abstract unique foo"
     }.collect(assertCanParseWithNothingLeft(pField));
 
     {
@@ -392,6 +403,7 @@ void testOptTypeParamatersNeg()
         "<",
         "<>",
         "<<foo>",
+        "<<foo>>",
         "<foo"
     }.collect(assertCantParse(optTypeParameters));
 }
@@ -427,7 +439,7 @@ StringParser<Expression[]> pFunctionArguments
             apply(and(despace(funcCallStart), despace(funcCallEnd)), (Anything[] _) => [])
         );
 
-StringParser<[<String->TypeSpec?>+]> pTypeParameterDeclaration
+StringParser<[DeclarationParameter+]> pTypeParameterDeclaration
         = pExprList(
             typeSpecGenericStart,
             typeSpecGenericEnd,
@@ -437,7 +449,11 @@ StringParser<[<String->TypeSpec?>+]> pTypeParameterDeclaration
                         (ident)
                                 => tryWhen(despace(literal(':')), pTypeSpec)(ident.rest).bind
                                 {
-                                    (typeSpec) => ok(String(ident.result)->typeSpec.result, typeSpec.rest);
+                                    (typeSpec) => tryWhen(despace(literal('=')), expr)(typeSpec.rest).bind
+                                    {
+                                        (defaultValue) => ok(declarationParameter(String(ident.result), typeSpec.result, defaultValue.result), defaultValue.rest);
+                                        (error) => error.toJustError;
+                                    };
                                     (error) => error.toJustError;
                                 };
                         (error) => error.toJustError;
@@ -462,7 +478,7 @@ StringParser<Expression> expr
             pDoubleQuoteString,
             pSingleQuoteString,
             pFunctionCall,
-            bindResultOk<RelativeSymbol, Character[], Character>(lIdent, (ok) => applyR(ok, pipe2(`String`, relativeSymbol))),
+            bindResultOk<ValueSymbol, Character[], Character>(lIdent, (ok) => applyR(ok, pipe2(`String`, valueSymbol))),
             pTypeSpec
         );
 
@@ -499,3 +515,6 @@ StringParser<StringLiteral> pDoubleQuoteString
 
 StringParser<IntegerLiteral> pInteger
         = apply(oneOrMore(digit), pipe2(pipe2<Integer?, String, [[Character+]]>(`String`, parseInteger), (Integer? _) => integerLiteral(_ else nothing)));
+
+StringParser<Boolean> pBool
+        = apply(or(keyword("true"), keyword("false")), (Character[] _) => _ == "true".sequence() then true else false);
