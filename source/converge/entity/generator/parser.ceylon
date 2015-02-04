@@ -46,10 +46,12 @@ import converge.entity.model {
     DeclarationParameter,
     declarationParameter,
     valueSymbol,
-    ValueSymbol,
     uniqueField,
     TypeSpec,
-    multiTypeSpec
+    multiTypeSpec,
+    BooleanLiteral,
+    trueLiteral,
+    falseLiteral
 }
 
 import de.anhnhan.parser.parsec {
@@ -73,7 +75,6 @@ import de.anhnhan.parser.parsec {
     right,
     ParseResult,
     bindResultOk,
-    applyR,
     leftRrightS,
     tryWhen,
     JustError,
@@ -525,8 +526,9 @@ StringParser<Expression> expr
             pInteger,
             pDoubleQuoteString,
             pSingleQuoteString,
+            pBool,
             pFunctionCall,
-            bindResultOk<ValueSymbol, Character[], Character>(lIdent, (ok) => applyR(ok, pipe2(`String`, valueSymbol))),
+            apply(lIdent, pipe2(`String`, valueSymbol)),
             pTypeSpec
         );
 
@@ -564,5 +566,5 @@ StringParser<StringLiteral> pDoubleQuoteString
 StringParser<IntegerLiteral> pInteger
         = apply(oneOrMore(digit), pipe2(pipe2<Integer?, String, [[Character+]]>(`String`, parseInteger), (Integer? _) => integerLiteral(_ else nothing)));
 
-StringParser<Boolean> pBool
-        = apply(or(keyword("true"), keyword("false")), (Character[] _) => _ == "true".sequence() then true else false);
+StringParser<BooleanLiteral> pBool
+        = apply(or(keyword("true"), keyword("false")), (Character[] _) => _ == "true".sequence() then trueLiteral else falseLiteral);

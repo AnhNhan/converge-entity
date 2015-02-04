@@ -8,11 +8,11 @@
 
 shared
 interface Literal
-        of StringLiteral | IntegerLiteral
+        of StringLiteral | IntegerLiteral | BooleanLiteral
         satisfies Expression
 {
     shared formal
-    String|Integer contents;
+    String|Integer|Boolean contents;
 }
 
 shared
@@ -31,6 +31,17 @@ interface IntegerLiteral
 {
     shared actual formal
     Integer contents;
+
+    string => contents.string;
+}
+
+shared
+interface BooleanLiteral
+        of trueLiteral | falseLiteral
+        satisfies Literal
+{
+    shared actual formal
+    Boolean contents;
 
     string => contents.string;
 }
@@ -56,3 +67,10 @@ IntegerLiteral integerLiteral(Integer int)
     }
     return integerLiteral;
 }
+
+shared object trueLiteral satisfies BooleanLiteral { contents = true; }
+shared object falseLiteral satisfies BooleanLiteral { contents = false; }
+
+shared
+BooleanLiteral booleanLiteral(Boolean contents)
+        => contents then trueLiteral else falseLiteral;
