@@ -51,7 +51,9 @@ import converge.entity.model {
     multiTypeSpec,
     BooleanLiteral,
     trueLiteral,
-    falseLiteral
+    falseLiteral,
+    NullLiteral,
+    nullLiteral
 }
 
 import de.anhnhan.parser.parsec {
@@ -366,8 +368,11 @@ void testField()
     {
         "foo",
         "foo = false",
+        "foo = \"bar\"",
+        "foo = 123",
         "foo: Bar",
         "foo: Boolean = false",
+        "foo: Null = null",
         "foo: Bar?",
         "foo: Bar|Baz",
         "foo: Bar|Baz?",
@@ -543,6 +548,7 @@ StringParser<Expression> expr
             pDoubleQuoteString,
             pSingleQuoteString,
             pBool,
+            pNull,
             pFunctionCall,
             apply(lIdent, pipe2(`String`, valueSymbol)),
             pTypeSpec
@@ -584,3 +590,6 @@ StringParser<IntegerLiteral> pInteger
 
 StringParser<BooleanLiteral> pBool
         = apply(or(keyword("true"), keyword("false")), (Character[] _) => _ == "true".sequence() then trueLiteral else falseLiteral);
+
+StringParser<NullLiteral> pNull
+        = apply(keyword("null"), (Anything _) => nullLiteral);
