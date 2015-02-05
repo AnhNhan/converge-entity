@@ -542,8 +542,8 @@ StringParseResult<FunctionCall> pFunctionCall({Character*} input, ParseResult<[C
         };
 
 // TODO: Optimize with look-aheads
-StringParser<Expression> expr
-        = anyOf(
+StringParseResult<Expression> expr({Character*} input)
+        /*= anyOf(
             pInteger,
             pDoubleQuoteString,
             pSingleQuoteString,
@@ -552,7 +552,68 @@ StringParser<Expression> expr
             pFunctionCall,
             apply(lIdent, pipe2(`String`, valueSymbol)),
             pTypeSpec
-        );
+        );*/
+{
+    value nextCharResult = anyLiteral<Character>(input);
+    switch (nextCharResult)
+    case (is Ok<Character, Character>)
+    {
+        value nextChar = nextCharResult.result;
+        if (nextChar.digit)
+        {
+            return pInteger(input);
+        }
+        else if (nextChar == '"')
+        {
+            return pDoubleQuoteString(input);
+        }
+        else if (nextChar == '\'')
+        {
+            return pSingleQuoteString(input);
+        }
+        else if (nextChar.uppercase)
+        {
+            return pTypeSpec(input);
+        }
+        else
+        {
+            function tryLIdentAndPFun({Character*} input)
+                    => lIdent(input).bind
+                    {
+                        (ident)
+                        {
+                            if (exists nextChar = input.skipWhile(Character.whitespace).first, nextChar == '(')
+                            {
+                                return pFunctionCall(input, ident);
+                            }
+                            return ok(valueSymbol(String(ident.result)), ident.rest);
+                        };
+                        (error) => error.toJustError;
+                    };
+            switch (nextChar)
+            case ('n')
+            {
+                return or(pNull, tryLIdentAndPFun)(input);
+            }
+            case ('t')
+            {
+                return or(pBool, tryLIdentAndPFun)(input);
+            }
+            case ('f')
+            {
+                return or(pBool, tryLIdentAndPFun)(input);
+            }
+            else
+            {
+                return tryLIdentAndPFun(input);
+            }
+        }
+    }
+    case (is Error<Anything, Character>)
+    {
+        return nextCharResult.toJustError;
+    }
+}
 
 StringParser<Character[]> pComment
         = or(
