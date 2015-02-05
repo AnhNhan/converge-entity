@@ -16,22 +16,26 @@ interface Field
     TypeSpec? type;
 
     shared formal
+    Expression? defaultValue;
+
+    shared formal
     AnnotationUse[] annotations;
 
     shared formal
     Set<StructModifier> modifiers;
 
-    string => "field ``name``: ``type else "String (default)"`` ``annotations nonempty then annotations else ""``";
+    string => "field ``name``: ``type else "String (default)"````defaultValue exists then (" = " + (defaultValue?.string else nothing)) else ""`` ``annotations nonempty then annotations else ""``";
 }
 
 shared
-Field field(String fieldName, TypeSpec? fieldType, AnnotationUse[] fieldAnnotations, Set<StructModifier>? fieldModifiers = null)
+Field field(String fieldName, TypeSpec? fieldType, Expression? fieldDefaultValue, AnnotationUse[] fieldAnnotations, Set<StructModifier>? fieldModifiers = null)
 {
     object field
             satisfies Field
     {
         name = fieldName;
         type = fieldType;
+        defaultValue = fieldDefaultValue;
         annotations = fieldAnnotations;
         modifiers = fieldModifiers else emptySet;
     }

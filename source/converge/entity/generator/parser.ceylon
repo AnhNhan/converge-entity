@@ -319,6 +319,7 @@ StringParseResult<Field> pField({Character*} input)
         variable
         value rest = identResult.rest.skipWhile(Character.whitespace);
         TypeSpec? typeSpec;
+        Expression? defaultValue;
         if (exists nextChar = rest.first, nextChar == ':')
         {
             value typeSpecResult = despace(pTypeSpec)(rest.rest);
@@ -338,8 +339,20 @@ StringParseResult<Field> pField({Character*} input)
             typeSpec = null;
         }
 
+        value defValResult = tryWhen(literal('='), despace(expr))(rest);
+        switch (defValResult)
+        case (is Ok<Expression?, Character>)
+        {
+            defaultValue = defValResult.result;
+            rest = defValResult.rest;
+        }
+        case (is Error<Anything, Character>)
+        {
+            return defValResult.toJustError.appendMessage("Invalid default value");
+        }
+
         value annotationsResult = zeroOrMore(despace(pAnnotationUse))(rest);
-        return ok(field(String(identResult.result), typeSpec, annotationsResult.result, fieldModifiers), annotationsResult.rest);
+        return ok(field(String(identResult.result), typeSpec, defaultValue, annotationsResult.result, fieldModifiers), annotationsResult.rest);
     }
     case (is Error<Anything, Character>)
     {
@@ -352,7 +365,9 @@ void testField()
 {
     {
         "foo",
+        "foo = false",
         "foo: Bar",
+        "foo: Boolean = false",
         "foo: Bar?",
         "foo: Bar|Baz",
         "foo: Bar|Baz?",
@@ -360,6 +375,7 @@ void testField()
         "foo: Bar?|Baz?",
         "foo:Bar<Baz<bar()>>",
         "foo:Bar<Baz<bar()>?>",
+        "foo: Integer = 0 #notnull",
         "foo : Bar #bar #baz",
         "abstract foo",
         "abstract foo: Bar",
