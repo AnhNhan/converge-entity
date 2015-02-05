@@ -76,7 +76,6 @@ import de.anhnhan.parser.parsec {
     ok,
     right,
     ParseResult,
-    bindResultOk,
     leftRrightS,
     tryWhen,
     JustError,
@@ -370,6 +369,7 @@ void testField()
         "foo = false",
         "foo = \"bar\"",
         "foo = 123",
+        "foo = getSomething()",
         "foo: Bar",
         "foo: Boolean = false",
         "foo: Null = null",
@@ -530,15 +530,16 @@ StringParser<[DeclarationParameter+]> pTypeParameterDeclaration
 StringParseResult<FunctionCall> pFunctionCall({Character*} input, ParseResult<[Character+],Character> funNameR = lIdent(input))
         => funNameR.bind
         {
-            (funNameR) => bindResultOk<FunctionCall, Expression[], Character>(
-                optTypeParameters,
-                (typeParamR) => pFunctionArguments(funNameR.rest).bind
+            (funNameR) => optTypeParameters(funNameR.rest).bind
+            {
+                (typeParamR) =>pFunctionArguments(typeParamR.rest).bind
                 {
                     (_ok) => ok(functionCall(String(funNameR.result), typeParamR.result, _ok.result), _ok.rest);
                     (error) => error.toJustError;
-                }
-            )(funNameR.rest);
-            (error) => error.toJustError;
+                };
+                (error) => error.toJustError.appendMessage("Invalid typespec for function call.");
+            };
+            (error) => error.toJustError.appendMessage("Expected: lident for function name.");
         };
 
 // TODO: Optimize with look-aheads
