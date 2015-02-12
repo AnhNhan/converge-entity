@@ -8,16 +8,27 @@
 
 shared
 interface PackageStmt
+        of noPackage | InPackage
 {
     shared formal
+    String[] nameParts;
+}
+
+shared
+interface InPackage
+        satisfies PackageStmt
+{
+    shared actual formal
     [String+] nameParts;
 }
+
+shared object noPackage satisfies PackageStmt { shared actual [] nameParts = []; }
 
 shared
 PackageStmt packageStmt([String+] packageNameParts)
 {
     object packageStmt
-            satisfies PackageStmt
+            satisfies InPackage
     {
         nameParts = packageNameParts;
     }

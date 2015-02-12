@@ -40,6 +40,9 @@ interface SingleTypeSpec
     shared formal
     String name;
 
+    shared formal
+    PackageStmt inPackage;
+
     "Template parameters."
     shared formal
     Expression[] parameters;
@@ -48,13 +51,14 @@ interface SingleTypeSpec
 }
 
 shared
-SingleTypeSpec singleTypeSpec(String typeName, Expression[] typeParameters)
+SingleTypeSpec singleTypeSpec(String typeName, Expression[] typeParameters, PackageStmt packag = noPackage)
 {
     object typeSpec
             satisfies SingleTypeSpec
     {
         name = typeName;
         parameters = typeParameters;
+        inPackage = packag;
     }
     return typeSpec;
 }
