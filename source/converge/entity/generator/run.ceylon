@@ -13,17 +13,17 @@ import ceylon.file {
     Directory
 }
 
-import converge.entity.model {
-    Alias,
+import converge.entity.model.parse_ast {
     Struct,
     PackageStmt,
+    Alias,
     FunctionCall
 }
 
 import de.anhnhan.parser.parsec {
-    oneOrMore,
     Ok,
-    Error
+    Error,
+    parseMultipleCompletelyUsing
 }
 import de.anhnhan.parser.parsec.string {
     StringParser
@@ -38,8 +38,18 @@ shared void run() {
     case ("test-scan")
     {
         assert (exists filePath = args.first);
-        value contents = scanDir(filePath)*.item.map(parse);
+        value contents = scanDir(filePath).map(
+            (entry) =>
+                String(entry.key.skip(filePath.size))
+                    .trimLeading((char) => char in "/\\")
+                    .replaceLast(".model", "")
+                ->parse(entry.item)
+        );
         print(contents);
+
+        // TODO: More useful error message.
+        "At least one file could not be fully parsed."
+        assert (contents*.item.every((result) => result is Ok<Anything, Character> && result.rest.empty));
     }
     case ("test-parse")
     {
@@ -65,7 +75,7 @@ shared void run() {
     }
 }
 
-StringParser<[<Struct|PackageStmt|Alias|FunctionCall>+]> parse = oneOrMore(despace(pTop));
+StringParser<[<Struct|Alias|FunctionCall>+]> parse = parseMultipleCompletelyUsing(despace(pTop));
 
 {<String->String>*} scanDir(String|Directory path)
 {
@@ -87,7 +97,7 @@ StringParser<[<Struct|PackageStmt|Alias|FunctionCall>+]> parse = oneOrMore(despa
     variable
     {<String->String>*} files = {for (file in dir.files("*.model")) file.path.string->readFile(file)};
 
-    return dir.childDirectories().flatMap(scanDir).sequence().chain(files);
+    return dir.childDirectories().flatMap(scanDir).chain(files);
 }
 
 String readFile(String|File path)
