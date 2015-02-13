@@ -86,7 +86,9 @@ import de.anhnhan.parser.parsec {
     tryWhen,
     JustError,
     manySatisfy,
-    left
+    left,
+    lookahead,
+    lookaheadCase
 }
 import de.anhnhan.parser.parsec.string {
     whitespace,
@@ -625,17 +627,14 @@ StringParseResult<FunctionCall> pFunctionCall({Character*} input, ParseResult<Va
             (error) => error.toJustError.appendMessage("Expected: lident for function name.");
         };
 
-// TODO: Optimize with look-aheads
 StringParser<Expression> expr
-        = anyOf(
-            pInteger,
-            pDoubleQuoteString,
-            pSingleQuoteString,
-            pBool,
-            pNull,
-            pFunctionCall,
-            pTypeSpec,
-            pValueSymbol
+        = lookahead(
+            lookaheadCase(digit, pInteger),
+            lookaheadCase(literal('"'), pDoubleQuoteString),
+            lookaheadCase(literal('\''), pSingleQuoteString),
+            lookaheadCase(uppercase, pTypeSpec),
+            // pTypeSpec appears here again in case of namespaces
+            lookaheadCase(lowercase, anyOf(pTypeSpec, pBool, pNull, pFunctionCall, pValueSymbol))
         );
 
 StringParser<Character[]> pComment
