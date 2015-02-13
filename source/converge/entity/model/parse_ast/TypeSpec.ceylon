@@ -47,7 +47,8 @@ interface SingleTypeSpec
     shared formal
     Expression[] parameters;
 
-    string => "``name````!parameters.empty then "<" + parameters*.string.interpose(", ").fold("")(plus<String>) + ">" else ""``";
+    string => (inPackage == noPackage then "" else inPackage.nameParts.interpose(".").fold("")(plus<String>) + "::")
+            + "``name````!parameters.empty then "<" + parameters*.string.interpose(", ").fold("")(plus<String>) + ">" else ""``";
 }
 
 shared

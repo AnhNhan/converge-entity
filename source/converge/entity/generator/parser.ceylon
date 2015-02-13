@@ -21,7 +21,7 @@ import ceylon.test {
     test
 }
 
-import converge.entity.model {
+import converge.entity.model.parse_ast {
     StructModifier,
     AnnotationUse,
     FunctionCall,
@@ -45,7 +45,6 @@ import converge.entity.model {
     abstractStruct,
     DeclarationParameter,
     declarationParameter,
-    valueSymbol,
     uniqueField,
     TypeSpec,
     multiTypeSpec,
@@ -53,7 +52,13 @@ import converge.entity.model {
     trueLiteral,
     falseLiteral,
     NullLiteral,
-    nullLiteral
+    nullLiteral,
+    SymbolName,
+    symbolName,
+    ValueSymbol,
+    typeSymbol,
+    TypeSymbol,
+    valueSymbol
 }
 
 import de.anhnhan.parser.parsec {
@@ -62,6 +67,7 @@ import de.anhnhan.parser.parsec {
     anyOf,
     sequence,
     or,
+    not,
     and,
     apply,
     satisfy,
@@ -79,7 +85,8 @@ import de.anhnhan.parser.parsec {
     leftRrightS,
     tryWhen,
     JustError,
-    manySatisfy
+    manySatisfy,
+    left
 }
 import de.anhnhan.parser.parsec.string {
     whitespace,
@@ -96,11 +103,10 @@ import de.anhnhan.parser.parsec.test {
     assertCantParse
 }
 
-StringParser<Struct|PackageStmt|Alias|FunctionCall> pTop
+StringParser<Struct|Alias|FunctionCall> pTop
         = anyOf(
             pStruct,
             pAlias,
-            pPackage,
             pFunctionCall
         );
 
@@ -132,28 +138,71 @@ StringParser<<Field|FunctionCall>[]> pStructMembers
 StringParser<Literal> despace<Literal>(StringParser<Literal> parser)
         => ignoreSurrounding<Literal, Character>(zeroOrMore(anyOf(pComment, whitespace)))(parser);
 
-StringParser identChar = satisfy(_or(_or(Character.letter, Character.digit), (Character _) => _ in "_-$"));
+Boolean(Character) identCharPredicate = _or(_or(Character.letter, Character.digit), (Character _) => _ in "_-$");
+StringParser identChar = satisfy(identCharPredicate);
+StringParser<String> identStr
+        = apply(manySatisfy(identCharPredicate), `String`);
 
 StringParser<[Character+]> lIdent
-        => apply(
+        = apply(
             sequence(
                 apply(lowercase, (Character _) => [_]),
                 oneOrMore(identChar)
             ),
             ([[Character+]+] _) => _.rest.fold(_.first)(uncurry(Sequence<Character>.append<Character>))
         );
+StringParser<String> lIdentStr
+        = apply(lIdent, `String`);
 
 StringParser<[Character+]> uIdent
-        => apply(
+        = apply(
             sequence<[Character+], Character>(
                 apply(uppercase, (Character _) => [_]),
                 oneOrMore(identChar)
             ),
             ([[Character+]+] _) => _.rest.fold<[Character+]>(_.first)(uncurry(Sequence<Character>.append<Character>))
         );
+StringParser<String> uIdentStr
+        = apply(uIdent, `String`);
 
-StringParser<PackageStmt> pPackage
-        = right(keyword("package"), apply(separatedBy(manySatisfy(Character.letter), packageNamePartSeparator), ([[Character+]+] parts) => packageStmt(parts.collect(`String`))));
+StringParser<PackageStmt> packagSpec
+        = apply(or(separatedBy(lIdentStr, packageNamePartSeparator), apply(lIdentStr, (String _) => [_])), packageStmt);
+
+StringParser<SymbolName> nsSymbolName
+        = or(
+            apply<[PackageStmt, String], Character, SymbolName>(and(leftRrightS(packagSpec, despace(literals("::"))), identStr), unflatten((PackageStmt packag, String ident) => symbolName(ident, packag))),
+            apply<String, Character, SymbolName>(left(identStr, not(or(literals("::"), packageNamePartSeparator))), symbolName)
+        );
+StringParser<ValueSymbol> pValueSymbol
+        = or(
+            apply<[PackageStmt, String], Character, ValueSymbol>(and(leftRrightS(packagSpec, despace(literals("::"))), lIdentStr), unflatten((PackageStmt packag, String ident) => valueSymbol(ident, packag))),
+            apply<String, Character, ValueSymbol>(left(lIdentStr, not(or(literals("::"), packageNamePartSeparator))), valueSymbol)
+        );
+StringParser<TypeSymbol> pTypeSymbol
+        = or(
+            apply<[PackageStmt, String], Character, TypeSymbol>(and(leftRrightS(packagSpec, despace(literals("::"))), uIdentStr), unflatten((PackageStmt packag, String ident) => typeSymbol(ident, packag))),
+            apply<String, Character, TypeSymbol>(left(uIdentStr, not(or(literals("::"), packageNamePartSeparator))), typeSymbol)
+        );
+
+
+test
+void testSymbolName()
+{
+    {
+        "foo",
+        "Foo",
+        "bar::foo",
+        "bar::Foo",
+        "baz.bar::foo",
+        "baz.bar::Foo"
+    }.collect(assertCanParseWithNothingLeft(nsSymbolName));
+
+    {
+        "foo.bar",
+        "foo::",
+        "::bar"
+    }.collect(assertCantParse(nsSymbolName));
+}
 
 StringParseResult<Alias> pAlias({Character*} input)
 {
@@ -178,7 +227,7 @@ StringParseResult<Alias> pAlias({Character*} input)
         return aliasArrow.toJustError.appendMessage("Expected: =>");
     }
 
-    value aliasTypes = separatedBy(pSingleTypeSpec, literal('|'))(aliasArrow.rest);
+    value aliasTypes = separatedBy(pSingleTypeSpec, despace(literal('|')))(aliasArrow.rest);
     if (is Error<Anything, Character> aliasTypes)
     {
         return aliasTypes.toJustError.appendMessage("Invalid TypeSpec");
@@ -186,6 +235,17 @@ StringParseResult<Alias> pAlias({Character*} input)
     assert (is Ok<[SingleTypeSpec+], Character> aliasTypes);
 
     return ok(typeAlias(aliasName, aliasTypes.result), aliasTypes.rest);
+}
+
+test
+void testAlias()
+{
+    {
+        "alias Foo => Bar",
+        "alias Foo => Bar | Baz",
+        "alias Foo => foo.bar::Baz",
+        "alias Foo => foo.bar::Baz | baz.foo::Bar"
+    }.collect(assertCanParseWithNothingLeft(pAlias));
 }
 
 StringParseResult<Struct> pStruct({Character*} input)
@@ -235,17 +295,21 @@ StringParseResult<Struct> pStruct({Character*} input)
         SingleTypeSpec? concretizes;
         String? nativeAs;
 
-        if (is Ok<SingleTypeSpec?, Character> conc = despace(isSpec)(rest))
+        value conc = despace(isSpec)(rest);
+        switch (conc)
+        case (is Ok<SingleTypeSpec?, Character>)
         {
             concretizes = conc.result;
             rest = conc.rest;
         }
-        else
+        case (is Error<SingleTypeSpec?, Character>)
         {
-            concretizes = null;
+            return conc.toJustError.appendMessage("Invalid type spec for parent type.");
         }
 
-        if (is Ok<[Character+]?, Character> nativ = despace(nativeAsSpec)(rest))
+        value nativ = despace(nativeAsSpec)(rest);
+        switch (nativ)
+        case (is Ok<[Character+]?, Character>)
         {
             rest = nativ.rest;
             value result = nativ.result;
@@ -258,9 +322,9 @@ StringParseResult<Struct> pStruct({Character*} input)
                 nativeAs = null;
             }
         }
-        else
+        case (is Error<[Character+]?, Character>)
         {
-            nativeAs = null;
+            return nativ.toJustError.appendMessage("Invalid native_as spec.");
         }
 
         value structAnnotations = zeroOrMore(despace(pAnnotationUse))(rest);
@@ -286,7 +350,9 @@ void testStruct()
         "struct Foo<val, Val> {}",
         "struct Foo { foo bar baz }",
         "struct Foo is Foo { foo bar baz }",
+        "struct Foo is bar.baz::Foo { foo bar baz }",
         "struct Foo<foo> is Bar<foo> { do_something(\"hi\") foo:Foo<123> bar }",
+        "struct Foo<foo> is Bar<foo> { foo.bar::do_something(\"hi\") foo:bar.baz::Foo<123> bar }",
         "struct DiscussionTransaction is TransactionEntity<Discussion, \"DISQ\"> {}",
         "struct User is TransactionAwareEntity<UserTransaction> { username_canon #unique #normalize(lowercase, to_ascii) }"
     }.collect(assertCanParseWithNothingLeft(pStruct));
@@ -371,10 +437,13 @@ void testField()
         "foo = 123",
         "foo = getSomething()",
         "foo: Bar",
+        "foo: foo::Bar",
         "foo: Boolean = false",
         "foo: Null = null",
         "foo: Bar?",
+        "foo: foo::Bar?",
         "foo: Bar|Baz",
+        "foo: foo.baz::Bar|foo.bar::Baz",
         "foo: Bar|Baz?",
         "foo: Bar?|Baz",
         "foo: Bar?|Baz?",
@@ -477,22 +546,33 @@ StringParser<TypeSpec> pTypeSpec
 
 StringParseResult<SingleTypeSpec> pSingleTypeSpec({Character*} input)
 {
-    value typeName = uIdent(input);
+    value typeName = pTypeSymbol(input);
     switch (typeName)
-    case (is Ok<Character[], Character>)
+    case (is Ok<TypeSymbol, Character>)
     {
-        value name = String(typeName.result);
+        value symbol = typeName.result;
         value typeSpecRest = typeName.rest.skipWhile(Character.whitespace);
         return optTypeParameters(typeSpecRest).bind
         {
-            (_ok) => ok(singleTypeSpec(name, _ok.result), _ok.rest);
+            (_ok) => ok(singleTypeSpec(symbol.name, _ok.result, symbol.packageSpec), _ok.rest);
             (error) => error.toJustError.appendMessage("Invalid type parameters");
         };
     }
-    case (is Error<Character[], Character>)
+    case (is Error<TypeSymbol, Character>)
     {
         return typeName.toJustError.appendMessage("Expected: type identifier");
     }
+}
+
+test
+void testSingleTypeSpec()
+{
+    {
+        "Foo",
+        "Foo<Bar>",
+        "Foo<\"baz\">",
+        "bar::Foo<false, foo.baz::Bar>"
+    }.collect(assertCanParseWithNothingLeft(pSingleTypeSpec));
 }
 
 StringParser<[Literal+]> pExprList<Literal>(StringParser<Anything> start, StringParser<Anything> end, StringParser<Literal> expr)
@@ -510,7 +590,11 @@ StringParser<[DeclarationParameter+]> pTypeParameterDeclaration
         = pExprList(
             typeSpecGenericStart,
             typeSpecGenericEnd,
-            ({Character*} input)
+            pTypeDeclarationParameter
+        );
+
+StringParser<DeclarationParameter> pTypeDeclarationParameter
+        = ({Character*} input)
                     => oneOrMore(identChar)(input).bind
                     {
                         (ident)
@@ -524,17 +608,16 @@ StringParser<[DeclarationParameter+]> pTypeParameterDeclaration
                                     (error) => error.toJustError;
                                 };
                         (error) => error.toJustError;
-                    }
-        );
+                    };
 
-StringParseResult<FunctionCall> pFunctionCall({Character*} input, ParseResult<[Character+],Character> funNameR = lIdent(input))
+StringParseResult<FunctionCall> pFunctionCall({Character*} input, ParseResult<ValueSymbol,Character> funNameR = pValueSymbol(input))
         => funNameR.bind
         {
             (funNameR) => optTypeParameters(funNameR.rest).bind
             {
                 (typeParamR) =>pFunctionArguments(typeParamR.rest).bind
                 {
-                    (_ok) => ok(functionCall(String(funNameR.result), typeParamR.result, _ok.result), _ok.rest);
+                    (_ok) => ok(functionCall(funNameR.result.name, typeParamR.result, _ok.result, funNameR.result.packageSpec), _ok.rest);
                     (error) => error.toJustError;
                 };
                 (error) => error.toJustError.appendMessage("Invalid typespec for function call.");
@@ -551,8 +634,8 @@ StringParser<Expression> expr
             pBool,
             pNull,
             pFunctionCall,
-            apply(lIdent, pipe2(`String`, valueSymbol)),
-            pTypeSpec
+            pTypeSpec,
+            pValueSymbol
         );
 
 StringParser<Character[]> pComment

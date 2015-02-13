@@ -13,6 +13,9 @@ interface FunctionCall
     shared formal
     String name;
 
+    shared formal
+    PackageStmt inPackage;
+
     "Invokation arguments."
     shared formal
     Expression[] arguments;
@@ -25,12 +28,13 @@ interface FunctionCall
 }
 
 shared
-FunctionCall functionCall(String funcName, Expression[] typeParameters, Expression[] invokationArguments)
+FunctionCall functionCall(String funcName, Expression[] typeParameters, Expression[] invokationArguments, PackageStmt packag = noPackage)
 {
     object functionCall
             satisfies FunctionCall
     {
         name = funcName;
+        inPackage = packag;
         parameters = typeParameters;
         arguments = invokationArguments;
     }

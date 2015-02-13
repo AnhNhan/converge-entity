@@ -12,6 +12,27 @@ interface PackageStmt
 {
     shared formal
     String[] nameParts;
+
+    shared actual
+    Boolean equals(Object that)
+    {
+        if (is PackageStmt that)
+        {
+            return nameParts == that.nameParts;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    shared actual
+    Integer hash
+    {
+        variable value hash = 1;
+        hash = 31*hash + nameParts.hash;
+        return hash;
+    }
 }
 
 shared
@@ -22,12 +43,13 @@ interface InPackage
     [String+] nameParts;
 }
 
-shared object noPackage satisfies PackageStmt { shared actual [] nameParts = []; }
+shared object noPackage extends Object() satisfies PackageStmt { shared actual [] nameParts = []; }
 
 shared
 PackageStmt packageStmt([String+] packageNameParts)
 {
     object packageStmt
+            extends Object()
             satisfies InPackage
     {
         nameParts = packageNameParts;
