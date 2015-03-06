@@ -8,6 +8,7 @@
 
 shared
 interface Alias
+        satisfies Node
 {
     shared formal
     String name;

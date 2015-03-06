@@ -8,6 +8,7 @@
 
 shared
 interface Field
+        satisfies Node
 {
     shared formal
     String name;

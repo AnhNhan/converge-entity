@@ -7,7 +7,6 @@
  */
 
 shared
-interface Expression
-        of Literal | TypeSpec | SymbolName | FunctionCall
-        satisfies Node
+interface Node
+        of Alias | Expression | Struct | Field
 {}

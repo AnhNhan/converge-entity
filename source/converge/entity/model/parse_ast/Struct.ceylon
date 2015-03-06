@@ -17,6 +17,7 @@ shared object uniqueField satisfies StructModifier { string = "unique"; }
 
 shared
 interface Struct
+        satisfies Node
 {
     shared formal
     String name;
@@ -36,6 +37,9 @@ interface Struct
 
     shared formal
     AnnotationUse[] annotations;
+
+    shared
+    Boolean abstract => modifiers.contains(abstractStruct);
 
     string => "Struct ``name`` concretizes ``concretizing else "none"``
                {

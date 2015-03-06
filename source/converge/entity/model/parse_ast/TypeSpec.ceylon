@@ -12,6 +12,7 @@ interface TypeSpec
         satisfies Expression
 {}
 
+"A.k.a. type unions."
 shared
 interface MultiTypeSpec
         satisfies TypeSpec
