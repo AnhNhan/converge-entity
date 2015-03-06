@@ -13,9 +13,11 @@ import ceylon.file {
     Directory
 }
 
+import converge.entity.generator.php.doctrine.naive {
+    convertStruct
+}
 import converge.entity.model.parse_ast {
     Struct,
-    PackageStmt,
     Alias,
     FunctionCall
 }
@@ -27,6 +29,9 @@ import de.anhnhan.parser.parsec {
 }
 import de.anhnhan.parser.parsec.string {
     StringParser
+}
+import de.anhnhan.php.render {
+    renderClassOrInterface
 }
 
 "Run the module `converge.entity.generator`."
@@ -58,6 +63,17 @@ shared void run() {
         print(result);
 
     }
+    case ("test-single-parse-generate-print")
+    {
+        assert (exists filePath = args.first);
+        value generated = parseFile(filePath)
+                .map((obj) { assert (is Struct obj); return obj; })
+                .map(convertStruct)
+                .map(renderClassOrInterface)
+        ;
+
+        print(generated);
+    }
     case ("benchmark-parse")
     {
         assert (exists filePath = args.first);
@@ -71,7 +87,7 @@ shared void run() {
     }
     else
     {
-        print("No help written yet.");
+        print("No help written yet. ``args``");
     }
 }
 
@@ -119,7 +135,7 @@ String readFile(String|File path)
     return lines(file).fold("")(plus<String>);
 }
 
-[Struct|PackageStmt|Alias|FunctionCall+] parseFile(String filePath)
+[Struct|Alias|FunctionCall+] parseFile(String filePath)
 {
     value contents = readFile(filePath);
     value result = parse(contents);
@@ -128,6 +144,6 @@ String readFile(String|File path)
         print(result);
         assert (false);
     }
-    assert (is Ok<[<Struct|PackageStmt|Alias|FunctionCall>+], Character> result);
+    assert (is Ok<[<Struct|Alias|FunctionCall>+], Character> result);
     return result.result;
 }
