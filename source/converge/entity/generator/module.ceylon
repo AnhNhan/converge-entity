@@ -8,7 +8,10 @@
 
 module converge.entity.generator "dev"
 {
-    import anhnhan.utils "0.1";
+    shared
+    import de.anhnhan.php "dev";
+    import de.anhnhan.utils "0.1";
+    shared
     import converge.entity.model "dev";
     import de.anhnhan.parser "dev";
 

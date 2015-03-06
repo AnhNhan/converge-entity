@@ -10,7 +10,7 @@ module converge.entity.model "dev"
 {
     shared
     import de.anhnhan.parser "dev";
-    import anhnhan.utils "0.1";
+    import de.anhnhan.utils "0.1";
 
     optional
     import ceylon.test "1.1.0";

@@ -6,10 +6,6 @@
     Software provided as-is, no warranty
  */
 
-import anhnhan.utils {
-    pipe2
-}
-
 import ceylon.collection {
     HashMap,
     HashSet
@@ -83,12 +79,13 @@ import de.anhnhan.parser.parsec {
     right,
     ParseResult,
     leftRrightS,
-    tryWhen,
     JustError,
-    manySatisfy,
     left,
     lookahead,
-    lookaheadCase
+    lookaheadCaseSingleLiteral,
+    lookaheadCase,
+    identityParser,
+    optionalLookahead
 }
 import de.anhnhan.parser.parsec.string {
     whitespace,
@@ -98,11 +95,15 @@ import de.anhnhan.parser.parsec.string {
     StringParseResult,
     backslashEscapable,
     digit,
-    keyword
+    keyword,
+    one_or_more_chars
 }
 import de.anhnhan.parser.parsec.test {
     assertCanParseWithNothingLeft,
     assertCantParse
+}
+import de.anhnhan.utils {
+    pipe2
 }
 
 StringParser<Struct|Alias|FunctionCall> pTop
@@ -129,8 +130,8 @@ StringParser annotationMarker = literal('#');
 StringParser<Character[]> abstractKeyword = keyword("abstract");
 StringParser<Character[]> uniqueKeyword = keyword("unique");
 
-StringParser<SingleTypeSpec?> isSpec = tryWhen(keyword("is"), despace(pSingleTypeSpec));
-StringParser<[Character+]?> nativeAsSpec = tryWhen(keyword("native_as"), despace(oneOrMore(or(identChar, literal('\\')))));
+StringParser<SingleTypeSpec?> isSpec = optionalLookahead(keyword("is"), despace(pSingleTypeSpec));
+StringParser<[Character+]?> nativeAsSpec = optionalLookahead(keyword("native_as"), despace(oneOrMore(or(identChar, literal('\\')))));
 
 StringParser<Field|FunctionCall> pStructMember
         = or(pFunctionCall, pField);
@@ -143,7 +144,7 @@ StringParser<Literal> despace<Literal>(StringParser<Literal> parser)
 Boolean(Character) identCharPredicate = _or(_or(Character.letter, Character.digit), (Character _) => _ in "_-$");
 StringParser identChar = satisfy(identCharPredicate);
 StringParser<String> identStr
-        = apply(manySatisfy(identCharPredicate), `String`);
+        = one_or_more_chars(identChar);
 
 StringParser<[Character+]> lIdent
         = apply(
@@ -158,11 +159,11 @@ StringParser<String> lIdentStr
 
 StringParser<[Character+]> uIdent
         = apply(
-            sequence<[Character+], Character>(
+            sequence(
                 apply(uppercase, (Character _) => [_]),
                 oneOrMore(identChar)
             ),
-            ([[Character+]+] _) => _.rest.fold<[Character+]>(_.first)(uncurry(Sequence<Character>.append<Character>))
+            ([[Character+]+] _) => _.rest.fold(_.first)(uncurry(Sequence<Character>.append<Character>))
         );
 StringParser<String> uIdentStr
         = apply(uIdent, `String`);
@@ -172,17 +173,17 @@ StringParser<PackageStmt> packagSpec
 
 StringParser<SymbolName> nsSymbolName
         = or(
-            apply<[PackageStmt, String], Character, SymbolName>(and(leftRrightS(packagSpec, despace(literals("::"))), identStr), unflatten((PackageStmt packag, String ident) => symbolName(ident, packag))),
+            apply(and(leftRrightS(packagSpec, despace(literals("::"))), identStr), unflatten((PackageStmt packag, String ident) => symbolName(ident, packag))),
             apply<String, Character, SymbolName>(left(identStr, not(or(literals("::"), packageNamePartSeparator))), symbolName)
         );
 StringParser<ValueSymbol> pValueSymbol
         = or(
-            apply<[PackageStmt, String], Character, ValueSymbol>(and(leftRrightS(packagSpec, despace(literals("::"))), lIdentStr), unflatten((PackageStmt packag, String ident) => valueSymbol(ident, packag))),
+            apply(and(leftRrightS(packagSpec, despace(literals("::"))), lIdentStr), unflatten((PackageStmt packag, String ident) => valueSymbol(ident, packag))),
             apply<String, Character, ValueSymbol>(left(lIdentStr, not(or(literals("::"), packageNamePartSeparator))), valueSymbol)
         );
 StringParser<TypeSymbol> pTypeSymbol
         = or(
-            apply<[PackageStmt, String], Character, TypeSymbol>(and(leftRrightS(packagSpec, despace(literals("::"))), uIdentStr), unflatten((PackageStmt packag, String ident) => typeSymbol(ident, packag))),
+            apply(and(leftRrightS(packagSpec, despace(literals("::"))), uIdentStr), unflatten((PackageStmt packag, String ident) => typeSymbol(ident, packag))),
             apply<String, Character, TypeSymbol>(left(uIdentStr, not(or(literals("::"), packageNamePartSeparator))), typeSymbol)
         );
 
@@ -408,7 +409,7 @@ StringParseResult<Field> pField({Character*} input)
             typeSpec = null;
         }
 
-        value defValResult = tryWhen(literal('='), despace(expr))(rest);
+        value defValResult = optionalLookahead(literal('='), despace(expr))(rest);
         switch (defValResult)
         case (is Ok<Expression?, Character>)
         {
@@ -600,9 +601,9 @@ StringParser<DeclarationParameter> pTypeDeclarationParameter
                     => oneOrMore(identChar)(input).bind
                     {
                         (ident)
-                                => tryWhen(despace(literal(':')), pTypeSpec)(ident.rest).bind
+                                => optionalLookahead(despace(literal(':')), pTypeSpec)(ident.rest).bind
                                 {
-                                    (typeSpec) => tryWhen(despace(literal('=')), expr)(typeSpec.rest).bind
+                                    (typeSpec) => optionalLookahead(despace(literal('=')), expr)(typeSpec.rest).bind
                                     {
                                         (defaultValue) => ok(declarationParameter(String(ident.result), typeSpec.result, defaultValue.result), defaultValue.rest);
                                         (error) => error.toJustError;
@@ -627,14 +628,24 @@ StringParseResult<FunctionCall> pFunctionCall({Character*} input, ParseResult<Va
             (error) => error.toJustError.appendMessage("Expected: lident for function name.");
         };
 
+StringParseResult<FunctionCall|ValueSymbol> pFunCallOrSymbol({Character*} input)
+        => pValueSymbol(input).bind
+        {
+            (name) => lookahead<FunctionCall|ValueSymbol, Character>(
+                lookaheadCase(despace(literal('(')), ({Character*} input) => pFunctionCall(input, name)),
+                lookaheadCaseSingleLiteral((Character _) => true, identityParser(name))
+            )(name.rest);
+            Error<Anything, Character>.toJustError;
+        };
+
 StringParser<Expression> expr
         = lookahead(
-            lookaheadCase(digit, pInteger),
-            lookaheadCase(literal('"'), pDoubleQuoteString),
-            lookaheadCase(literal('\''), pSingleQuoteString),
-            lookaheadCase(uppercase, pTypeSpec),
+            lookaheadCaseSingleLiteral(Character.digit, pInteger),
+            lookaheadCaseSingleLiteral('"'.equals of Boolean(Character), pDoubleQuoteString),
+            lookaheadCaseSingleLiteral('\''.equals of Boolean(Character), pSingleQuoteString),
+            lookaheadCaseSingleLiteral(Character.uppercase, pTypeSpec),
             // pTypeSpec appears here again in case of namespaces
-            lookaheadCase(lowercase, anyOf(pTypeSpec, pBool, pNull, pFunctionCall, pValueSymbol))
+            lookaheadCaseSingleLiteral(Character.lowercase, anyOf(pTypeSpec, pBool, pNull, pFunCallOrSymbol))
         );
 
 StringParser<Character[]> pComment
@@ -669,7 +680,7 @@ StringParser<StringLiteral> pDoubleQuoteString
         = apply(backslashEscapable(literal('"'), stringEscapeMap), pipe2(`String`, stringLiteral));
 
 StringParser<IntegerLiteral> pInteger
-        = apply(oneOrMore(digit), pipe2(pipe2<Integer?, String, [[Character+]]>(`String`, parseInteger), (Integer? _) => integerLiteral(_ else nothing)));
+        = apply(one_or_more_chars(digit), pipe2(parseInteger of Integer?(String), (Integer? _) => integerLiteral(_ else nothing)));
 
 StringParser<BooleanLiteral> pBool
         = apply(or(keyword("true"), keyword("false")), (Character[] _) => _ == "true".sequence() then trueLiteral else falseLiteral);
