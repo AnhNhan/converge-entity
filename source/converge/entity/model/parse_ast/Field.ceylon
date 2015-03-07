@@ -25,6 +25,14 @@ interface Field
     shared formal
     Set<StructModifier> modifiers;
 
+    shared default
+    Boolean mutable => annotationUse("mutable") in annotations;
+    shared
+    Boolean immutable => !mutable;
+
+    shared
+    Boolean autoInitialize => annotationUse("auto_init") in annotations;
+
     string => "field ``name``: ``type else "String (default)"````defaultValue exists then (" = " + (defaultValue?.string else nothing)) else ""`` ``annotations nonempty then annotations else ""``";
 }
 
