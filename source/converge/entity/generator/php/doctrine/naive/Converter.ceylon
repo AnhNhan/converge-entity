@@ -6,6 +6,9 @@
     Software provided as-is, no warranty
  */
 
+import converge.entity.generator.utils {
+    ucfirst
+}
 import converge.entity.model.parse_ast {
     Struct,
     Field,
@@ -17,7 +20,9 @@ import converge.entity.model.parse_ast {
     falseLiteral,
     TypeSpec,
     nullLiteral,
-    SymbolName
+    SymbolName,
+    MultiTypeSpec,
+    SingleTypeSpec
 }
 
 import de.anhnhan.php.ast {
@@ -43,7 +48,11 @@ import de.anhnhan.php.ast {
     FunctionDefinitionParameter,
     ExpressionStatement,
     Assignment,
-    Use
+    Use,
+    FunctionInvocation,
+    varRef,
+    FunctionCallArgument,
+    propRef
 }
 
 // TODO: Include parents + transactions for reification & generation
@@ -91,14 +100,52 @@ ClassOrInterface convertStruct(Struct struct)
 
 {Property|Const|Method|Null*} generateMember(Field|FunctionCall member)
 {
+    function defaultMembers(Field field)
+            => {
+                generateProperty(field),
+                generateGetterMethod(field),
+                generateSetterMethod(field)
+            };
     switch (member)
     case (is Field)
     {
-        return {
-            generateProperty(member),
-            generateGetterMethod(member),
-            generateSetterMethod(member)
-        };
+        value typ = member.type;
+        switch (typ)
+        case (is MultiTypeSpec?)
+        {
+            return defaultMembers(member);
+        }
+        case (is SingleTypeSpec)
+        {
+            switch (typ.name)
+            case ("Collection")
+            {
+                function collectionMethod(String field, String kind)
+                        => Method
+                        {
+                            Function
+                            {
+                                kind + ucfirst(field);
+                                {FunctionDefinitionParameter(field)};
+                                ExpressionStatement(FunctionInvocation { propRef(thisRef(field), kind); FunctionCallArgument(varRef(field)) }),
+                                Return(VariableReference("this"))
+                            };
+                            _final, public
+                        };
+
+                return {
+                    generateProperty(member),
+                    generateGetterMethod(member),
+                    collectionMethod(member.name, "add"),
+                    collectionMethod(member.name, "remove"),
+                    collectionMethod(member.name, "has")
+                };
+            }
+            else
+            {
+                return defaultMembers(member);
+            }
+        }
     }
     case (is FunctionCall)
     {
@@ -180,7 +227,7 @@ Method? generateSetterMethod(Field field)
     {
         func = Function
         {
-            name = "set" + String { {field.name.first?.uppercased, *field.name.rest}.coalesced; };
+            name = "set" + ucfirst(field.name);
             parameters = [FunctionDefinitionParameter(field.name)];
             statements = [
                 ExpressionStatement(Assignment(thisRef(field.name), VariableReference(field.name))),
