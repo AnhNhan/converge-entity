@@ -52,7 +52,8 @@ import de.anhnhan.php.ast {
     FunctionInvocation,
     varRef,
     FunctionCallArgument,
-    propRef
+    propRef,
+    private
 }
 
 // TODO: Include parents + transactions for reification & generation
@@ -140,6 +141,48 @@ ClassOrInterface convertStruct(Struct struct)
                     collectionMethod(member.name, "remove"),
                     collectionMethod(member.name, "has")
                 };
+            }
+            case ("ExternalReference")
+            {
+                value object_attr = member.name + "_object";
+                return {
+                    Property(member.name),
+                    Property(object_attr),
+                    Method
+                    {
+                        Function
+                        {
+                            member.name;
+                            statements = {
+                                Return(thisRef(object_attr))
+                            };
+                        };
+                        _final, public
+                    },
+                    Method
+                    {
+                        Function
+                        {
+                            member.name + "Id";
+                            statements = {
+                                Return(thisRef(member.name))
+                            };
+                        };
+                        _final, public
+                    },
+                    Method
+                    {
+                        Function
+                        {
+                            "set" + ucfirst(member.name);
+                            {FunctionDefinitionParameter(member.name)};
+                            ExpressionStatement(Assignment(thisRef(member.name), propRef(varRef(member.name), "uid"))),
+                            ExpressionStatement(Assignment(thisRef(object_attr), varRef(member.name))),
+                            Return(VariableReference("this"))
+                        };
+                        _final, member.mutable then public else private
+                    }
+                }.coalesced;
             }
             else
             {
