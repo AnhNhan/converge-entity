@@ -169,7 +169,7 @@ StringParser<String> uIdentStr
         = apply(uIdent, `String`);
 
 StringParser<PackageStmt> packagSpec
-        = apply(or(separatedBy(lIdentStr, packageNamePartSeparator), apply(lIdentStr, (String _) => [_])), packageStmt);
+        = apply(or(separatedBy(identStr, packageNamePartSeparator), apply(identStr, (String _) => [_])), packageStmt);
 
 StringParser<SymbolName> nsSymbolName
         = or(
@@ -197,7 +197,8 @@ void testSymbolName()
         "bar::foo",
         "bar::Foo",
         "baz.bar::foo",
-        "baz.bar::Foo"
+        "baz.bar::Foo",
+        "Bar.Baz::foo"
     }.collect(assertCanParseWithNothingLeft(nsSymbolName));
 
     {
