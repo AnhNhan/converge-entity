@@ -54,7 +54,10 @@ import de.anhnhan.php.ast {
 }
 import de.anhnhan.utils {
     ucfirst,
-    pipe2
+    pipe2,
+    actOnNullable,
+    cast,
+    falsyFun
 }
 
 // TODO: Include parents + transactions for reification & generation
@@ -203,13 +206,18 @@ ClassOrInterface convertStruct(Struct struct)
 {Method*} generateCommonMethods({Field*} fields)
 {
     value specialValueFields = ["id", "uid"];
+    value doctrineCollection = Name(["Doctrine", "ORM", "PersistentCollection"], false);
+
+    value fieldIsCollection = falsyFun(pipe2(Field.type, pipe2(cast<SingleTypeSpec>, actOnNullable(pipe2(SingleTypeSpec.name, "Collection".equals)))));
 
     value fieldsToBeInitialized = fields
             .filter(Field.immutable)
             .filter(not(Field.autoInitialize))
             .filter(not(pipe2(Field.name, specialValueFields.contains)))
+            .filter(not(fieldIsCollection))
     ;
     value fieldsToAutoInitialize = fields.filter(Field.autoInitialize);
+    value fieldCollections = fields.filter(fieldIsCollection);
 
     variable
     {Method*} methods = {};
@@ -224,8 +232,10 @@ ClassOrInterface convertStruct(Struct struct)
                 func = Function
                 {
                     name = "__construct";
-                    parameters = fieldsToBeInitialized*.name.map(`FunctionDefinitionParameter`);
-                    statements = fieldsToBeInitialized
+                    parameters = fieldsToBeInitialized*.name.map(`FunctionDefinitionParameter`)
+                            .chain(fieldCollections*.name.map((name) => FunctionDefinitionParameter { name; typeHint = doctrineCollection; }))
+                    ;
+                    statements = fieldsToBeInitialized.chain(fieldCollections)
                             .map((field) => ExpressionStatement(Assignment(thisRef(field.name), VariableReference(field.name))))
                             .chain(fieldsToAutoInitialize
                                     .map((field) => ExpressionStatement(Assignment(thisRef(field.name), autoInitValueFor(field)))))
