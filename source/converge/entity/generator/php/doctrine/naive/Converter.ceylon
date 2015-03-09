@@ -19,7 +19,8 @@ import converge.entity.model.parse_ast {
     nullLiteral,
     SymbolName,
     MultiTypeSpec,
-    SingleTypeSpec
+    SingleTypeSpec,
+    noPackage
 }
 
 import de.anhnhan.php.ast {
@@ -50,10 +51,7 @@ import de.anhnhan.php.ast {
     varRef,
     FunctionCallArgument,
     propRef,
-    private,
-    DocAnnotation,
-    NamedParameter,
-    AnnotationValue
+    private
 }
 import de.anhnhan.utils {
     ucfirst,
@@ -67,7 +65,7 @@ shared
 Name toPHPName(SingleTypeSpec type)
 {
     assert (is [String+] name = type.inPackage.nameParts.append([type.name]));
-    return Name(name, false);
+    return Name(name, type.inPackage == noPackage);
 }
 
 // TODO: Include parents + transactions for reification & generation
@@ -148,21 +146,11 @@ ClassOrInterface convertStruct(Struct struct)
                             _final, public
                         };
 
-                value parameters = typ.parameters;
-                assert (is [Expression+] parameters);
-                assert (is SingleTypeSpec elementType = parameters.first);
-
                 return {
                     Property
                     {
                         member.name;
-                        annotations = {
-                            DocAnnotation
-                            {
-                                Name(["OneToMany"]);
-                                NamedParameter("targetEntity", AnnotationValue(PHPString(toPHPName(elementType).render())))
-                            }
-                        };
+                        annotations = doctrineAnnotations(member);
                     },
                     generateGetterMethod(member),
                     collectionMethod(member.name, "add"),
@@ -174,7 +162,7 @@ ClassOrInterface convertStruct(Struct struct)
             {
                 value object_attr = member.name + "_object";
                 return {
-                    Property(member.name),
+                    Property { member.name; annotations = doctrineAnnotations(member); },
                     Property(object_attr),
                     Method
                     {
@@ -276,7 +264,7 @@ Property generateProperty(Field field)
     value name = field.name;
     PHPExpression? defaultValue = field.defaultValue exists then convertExpression(field.defaultValue else nothing);
     value modifiers = {}; // TODO: Temporary
-    return Property(name, defaultValue, modifiers);
+    return Property(name, defaultValue, modifiers, doctrineAnnotations(field));
 }
 
 Method generateGetterMethod(Field field)
