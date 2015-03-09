@@ -6,9 +6,6 @@
     Software provided as-is, no warranty
  */
 
-import converge.entity.generator.utils {
-    ucfirst
-}
 import converge.entity.model.parse_ast {
     Struct,
     Field,
@@ -54,6 +51,10 @@ import de.anhnhan.php.ast {
     FunctionCallArgument,
     propRef,
     private
+}
+import de.anhnhan.utils {
+    ucfirst,
+    pipe2
 }
 
 // TODO: Include parents + transactions for reification & generation
@@ -206,7 +207,7 @@ ClassOrInterface convertStruct(Struct struct)
     value fieldsToBeInitialized = fields
             .filter(Field.immutable)
             .filter(not(Field.autoInitialize))
-            .filter(not((Field field) => field.name in specialValueFields))
+            .filter(not(pipe2(Field.name, specialValueFields.contains)))
     ;
     value fieldsToAutoInitialize = fields.filter(Field.autoInitialize);
 
