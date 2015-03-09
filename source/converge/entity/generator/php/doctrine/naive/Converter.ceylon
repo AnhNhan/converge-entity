@@ -50,7 +50,10 @@ import de.anhnhan.php.ast {
     varRef,
     FunctionCallArgument,
     propRef,
-    private
+    private,
+    DocAnnotation,
+    NamedParameter,
+    AnnotationValue
 }
 import de.anhnhan.utils {
     ucfirst,
@@ -58,6 +61,13 @@ import de.anhnhan.utils {
     actOnNullable,
     cast,
     falsyFun
+}
+
+shared
+Name toPHPName(SingleTypeSpec type)
+{
+    assert (is [String+] name = type.inPackage.nameParts.append([type.name]));
+    return Name(name, false);
 }
 
 // TODO: Include parents + transactions for reification & generation
@@ -138,8 +148,22 @@ ClassOrInterface convertStruct(Struct struct)
                             _final, public
                         };
 
+                value parameters = typ.parameters;
+                assert (is [Expression+] parameters);
+                assert (is SingleTypeSpec elementType = parameters.first);
+
                 return {
-                    generateProperty(member),
+                    Property
+                    {
+                        member.name;
+                        annotations = {
+                            DocAnnotation
+                            {
+                                Name(["OneToMany"]);
+                                NamedParameter("targetEntity", AnnotationValue(PHPString(toPHPName(elementType).render())))
+                            }
+                        };
+                    },
                     generateGetterMethod(member),
                     collectionMethod(member.name, "add"),
                     collectionMethod(member.name, "remove"),
@@ -206,7 +230,6 @@ ClassOrInterface convertStruct(Struct struct)
 {Method*} generateCommonMethods({Field*} fields)
 {
     value specialValueFields = ["id", "uid"];
-    value doctrineCollection = Name(["Doctrine", "ORM", "PersistentCollection"], false);
 
     value fieldIsCollection = falsyFun(pipe2(Field.type, pipe2(cast<SingleTypeSpec>, actOnNullable(pipe2(SingleTypeSpec.name, "Collection".equals)))));
 
