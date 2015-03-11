@@ -18,13 +18,13 @@ interface MultiTypeSpec
         satisfies TypeSpec
 {
     shared formal
-    [TypeSpec+] typeSpecs;
+    [SingleTypeSpec+] typeSpecs;
 
     string => typeSpecs*.string.interpose("|").fold("")(plus<String>);
 }
 
 shared
-MultiTypeSpec multiTypeSpec([TypeSpec+] speccedTypes)
+MultiTypeSpec multiTypeSpec([SingleTypeSpec+] speccedTypes)
 {
     object multiTypeSpec
             satisfies MultiTypeSpec

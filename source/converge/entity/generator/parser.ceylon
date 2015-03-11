@@ -529,23 +529,24 @@ StringParser<TypeSpec> pTypeSpec
                             value rest = single.rest.skipWhile(Character.whitespace);
                             if (exists nextChar = rest.first, nextChar == '?')
                             {
-                                return ok(multiTypeSpec([single.result, singleTypeSpec("Null", [])]), rest.rest);
+                                return ok([single.result, singleTypeSpec("Null", [])], rest.rest);
                             }
-                            return single;
+                            return ok([single.result], single.rest);
                         };
-                        identity<Error<TypeSpec, Character>>;
+                        (error) => error.toJustError;
                     }
             ,
             despace(typeUnionSeparator)
         ),
-        ([TypeSpec+] specs)
+        ([[SingleTypeSpec+]+] specs)
         {
-            if (specs.size == 1, is SingleTypeSpec single = specs.first)
+            assert (nonempty _specs = specs.flatMap(identity<[SingleTypeSpec+]>).sequence());
+            if (_specs.size == 1)
             {
-                return single;
+                return _specs.first;
             }
 
-            return multiTypeSpec(specs);
+            return multiTypeSpec(_specs);
         });
 
 StringParseResult<SingleTypeSpec> pSingleTypeSpec({Character*} input)
