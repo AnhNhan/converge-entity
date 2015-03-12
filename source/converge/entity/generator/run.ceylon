@@ -72,7 +72,7 @@ shared void run() {
                 .map(renderClassOrInterface)
         ;
 
-        print(generated);
+        print("\n\n".join(generated));
     }
     case ("benchmark-parse")
     {
