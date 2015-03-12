@@ -47,7 +47,7 @@ Map<String, String> columnTypeName = HashMap
 {
     value annotations = LinkedList<DocAnnotation>();
 
-    value typ = cast<SingleTypeSpec>(field.type);
+    value typ = cast<SingleTypeSpec>(field.type?.unnullified);
 
     switch (typ?.name)
     case ("Collection")
@@ -65,7 +65,6 @@ Map<String, String> columnTypeName = HashMap
     else
     {
         // TODO: This also specs multi-types as String. Intended behavior?
-        // TODO: No support for nullable types
         if (exists columnType = columnTypeName.get(typ?.name else "String"))
         {
             annotations.add(DocAnnotation
