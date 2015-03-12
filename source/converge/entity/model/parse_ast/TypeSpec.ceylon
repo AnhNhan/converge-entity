@@ -113,12 +113,34 @@ interface MultiTypeSpec
     [SingleTypeSpec+] typeSpecs;
 
     string => typeSpecs*.string.interpose("|").fold("")(plus<String>);
+
+    shared actual
+    Integer hash
+    {
+        variable value hash = 1;
+        hash = 31*hash + typeSpecs.hash;
+        return hash;
+    }
+
+    shared actual
+    Boolean equals(Object that)
+    {
+        if (is MultiTypeSpec that)
+        {
+            return typeSpecs==that.typeSpecs;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }
 
 shared
 MultiTypeSpec multiTypeSpec([SingleTypeSpec+] speccedTypes)
 {
     object multiTypeSpec
+            extends Object()
             satisfies MultiTypeSpec
     {
         typeSpecs = speccedTypes;
@@ -142,12 +164,38 @@ interface SingleTypeSpec
 
     string => (inPackage == noPackage then "" else inPackage.nameParts.interpose(".").fold("")(plus<String>) + "::")
             + "``name````!parameters.empty then "<" + parameters*.string.interpose(", ").fold("")(plus<String>) + ">" else ""``";
+
+    shared actual
+    Boolean equals(Object that)
+    {
+        if (is SingleTypeSpec that)
+        {
+            return name==that.name &&
+                inPackage==that.inPackage &&
+                parameters==that.parameters;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    shared actual
+    Integer hash
+    {
+        variable value hash = 1;
+        hash = 31*hash + name.hash;
+        hash = 31*hash + inPackage.hash;
+        hash = 31*hash + parameters.hash;
+        return hash;
+    }
 }
 
 shared
 SingleTypeSpec singleTypeSpec(String typeName, Expression[] typeParameters = [], PackageStmt packag = noPackage)
 {
     object typeSpec
+            extends Object()
             satisfies SingleTypeSpec
     {
         name = typeName;
