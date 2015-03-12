@@ -9,7 +9,8 @@
 import ceylon.test {
     test,
     assertTrue,
-    assertFalse
+    assertFalse,
+    assertEquals
 }
 
 shared
@@ -34,6 +35,33 @@ interface TypeSpec
         {
             value typeSpecs = _this.typeSpecs;
             return typeSpecs.size in [1, 2] && check(typeSpecs);
+        }
+    }
+
+    shared
+    SingleTypeSpec? unnullified
+    {
+        value _this = this;
+        switch (_this)
+        case (is SingleTypeSpec)
+        {
+            return _this;
+        }
+        case (is MultiTypeSpec)
+        {
+            value typeSpecs = _this.typeSpecs;
+            switch (typeSpecs.size)
+            case (1|2)
+            {
+                return typeSpecs
+                        .filter((SingleTypeSpec element) => element.name != "Null")
+                        .first
+                ;
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }
@@ -62,6 +90,18 @@ void nullableTypeEquality()
      */
     assertFalse(text1.isTypeOrNull("Null"));
     assertFalse(text2.isTypeOrNull("Null"));
+}
+
+test
+void test_typespec_unnullified()
+{
+    value nullableText = multiTypeSpec([singleTypeSpec("Text"), singleTypeSpec("Null")]);
+    value text1 = multiTypeSpec([singleTypeSpec("Text")]);
+    value text2 = singleTypeSpec("Text");
+
+    assertEquals(nullableText.unnullified, text2);
+    assertEquals(text1.unnullified, text2);
+    assertEquals(text2.unnullified, text2);
 }
 
 "A.k.a. type unions."
