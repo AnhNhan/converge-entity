@@ -24,10 +24,13 @@ import converge.entity.model.parse_ast {
 }
 
 import de.anhnhan.php.ast {
+    Name,
+    ClassOrInterface,
+    Use,
+    Const,
     Class,
     Interface,
     public,
-    Const,
     Method,
     Property,
     PHPExpression=Expression,
@@ -36,29 +39,26 @@ import de.anhnhan.php.ast {
     phpFalse,
     NumberLiteral,
     phpNull,
-    ClassOrInterface,
     _final,
     Function,
     Return,
     thisRef,
-    Name,
     VariableReference,
     FunctionDefinitionParameter,
-    ExpressionStatement,
     Assignment,
-    Use,
     FunctionInvocation,
     varRef,
     FunctionCallArgument,
     propRef,
     private
 }
+
 import de.anhnhan.utils {
     ucfirst,
     pipe2,
     actOnNullable,
-    cast,
-    falsyFun
+    falsyFun,
+    cast
 }
 
 shared
@@ -140,7 +140,7 @@ ClassOrInterface convertStruct(Struct struct)
                             {
                                 kind + ucfirst(field);
                                 {FunctionDefinitionParameter(field)};
-                                ExpressionStatement(FunctionInvocation { propRef(thisRef(field), kind); FunctionCallArgument(varRef(field)) }),
+                                FunctionInvocation { propRef(thisRef(field), kind); FunctionCallArgument(varRef(field)) },
                                 Return(VariableReference("this"))
                             };
                             _final, public
@@ -192,8 +192,8 @@ ClassOrInterface convertStruct(Struct struct)
                         {
                             "set" + ucfirst(member.name);
                             {FunctionDefinitionParameter(member.name)};
-                            ExpressionStatement(Assignment(thisRef(member.name), propRef(varRef(member.name), "uid"))),
-                            ExpressionStatement(Assignment(thisRef(object_attr), varRef(member.name))),
+                            Assignment(thisRef(member.name), propRef(varRef(member.name), "uid")),
+                            Assignment(thisRef(object_attr), varRef(member.name)),
                             Return(VariableReference("this"))
                         };
                         _final, member.mutable then public else private
@@ -247,9 +247,9 @@ ClassOrInterface convertStruct(Struct struct)
                             .chain(fieldCollections*.name.map((name) => FunctionDefinitionParameter { name; typeHint = doctrineCollection; }))
                     ;
                     statements = fieldsToBeInitialized.chain(fieldCollections)
-                            .map((field) => ExpressionStatement(Assignment(thisRef(field.name), VariableReference(field.name))))
+                            .map((field) => Assignment(thisRef(field.name), VariableReference(field.name)))
                             .chain(fieldsToAutoInitialize
-                                    .map((field) => ExpressionStatement(Assignment(thisRef(field.name), autoInitValueFor(field)))))
+                                    .map((field) => Assignment(thisRef(field.name), autoInitValueFor(field))))
                     ;
                 };
             }
@@ -295,7 +295,7 @@ Method? generateSetterMethod(Field field)
             name = "set" + ucfirst(field.name);
             parameters = [FunctionDefinitionParameter(field.name)];
             statements = [
-                ExpressionStatement(Assignment(thisRef(field.name), VariableReference(field.name))),
+                Assignment(thisRef(field.name), VariableReference(field.name)),
                 Return(VariableReference("this"))
             ];
         };
