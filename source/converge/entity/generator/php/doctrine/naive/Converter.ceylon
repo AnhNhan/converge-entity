@@ -52,7 +52,6 @@ import de.anhnhan.php.ast {
     propRef,
     private
 }
-
 import de.anhnhan.utils {
     ucfirst,
     pipe2,
@@ -70,7 +69,12 @@ Name toPHPName(SingleTypeSpec type)
 
 // TODO: Include parents + transactions for reification & generation
 shared
-ClassOrInterface convertStruct(Struct struct)
+ClassOrInterface convertStruct(
+    "The struct to convert."
+    Struct struct,
+    "Responsible for the retrieval of referenced structs."
+    Struct? getParents(SingleTypeSpec typeSpec)
+)
 {
     value members = struct.members
             .flatMap(generateMember)
@@ -82,7 +86,7 @@ ClassOrInterface convertStruct(Struct struct)
 
     // TODO: Temporary
     value implements = [];
-    value _extends = null;
+    value _extends = struct.concretizing exists then toPHPName(struct.concretizing else nothing);
 
     switch (struct.abstract)
     case (true)
@@ -229,6 +233,7 @@ ClassOrInterface convertStruct(Struct struct)
     ;
     value fieldsToAutoInitialize = fields.filter(Field.autoInitialize);
     value fieldCollections = fields.filter(fieldIsCollection);
+    value fieldUid = fields.find(pipe2(Field.name, "uid".equals));
 
     variable
     {Method*} methods = {};
@@ -251,6 +256,30 @@ ClassOrInterface convertStruct(Struct struct)
                             .chain(fieldsToAutoInitialize
                                     .map((field) => Assignment(thisRef(field.name), autoInitValueFor(field))))
                     ;
+                };
+            }
+        };
+    }
+
+    if (exists fieldUid)
+    {
+        // TODO: Better error handling
+        // TODO: Sub-Uids
+        assert (is SingleTypeSpec type = fieldUid.type);
+        assert (type.name == "UniqueId");
+        assert (is [StringLiteral+] params = type.parameters);
+
+        methods = methods.chain
+        {
+            Method
+            {
+                modifiers = {_final, public};
+                func = Function
+                {
+                    name = "uidType";
+                    statements = {
+                        Return(PHPString(params.first.contents))
+                    };
                 };
             }
         };

@@ -68,7 +68,7 @@ shared void run() {
         assert (exists filePath = args.first);
         value generated = parseFile(filePath)
                 .map((obj) { assert (is Struct obj); return obj; })
-                .map(convertStruct)
+                .map((Struct struct) => convertStruct(struct, (Anything _) => null))
                 .map(renderClassOrInterface)
         ;
 
