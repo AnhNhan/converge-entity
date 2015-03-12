@@ -232,11 +232,24 @@ ClassOrInterface convertStruct(
             .filter(not(fieldIsCollection))
     ;
     value fieldsToAutoInitialize = fields.filter(Field.autoInitialize);
+    value fieldsToReinitialize = fields.filter(Field.reinitOnUpdate);
     value fieldCollections = fields.filter(fieldIsCollection);
     value fieldUid = fields.find(pipe2(Field.name, "uid".equals));
 
+    function initializeField(Field field)
+            => Assignment(thisRef(field.name), autoInitValueFor(field));
+
     variable
-    {Method*} methods = {};
+    {Method*} methods = {
+        Method
+        {
+            modifiers = {public};
+            func = Function {
+                name = "update";
+                statements = fieldsToReinitialize.map(initializeField);
+            };
+        }
+    };
 
     if (fieldsToBeInitialized.size + fieldsToAutoInitialize.size > 0)
     {
@@ -254,7 +267,7 @@ ClassOrInterface convertStruct(
                     statements = fieldsToBeInitialized.chain(fieldCollections)
                             .map((field) => Assignment(thisRef(field.name), VariableReference(field.name)))
                             .chain(fieldsToAutoInitialize
-                                    .map((field) => Assignment(thisRef(field.name), autoInitValueFor(field))))
+                                    .map(initializeField))
                     ;
                 };
             }
