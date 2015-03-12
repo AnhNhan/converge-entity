@@ -36,6 +36,12 @@ interface Field
     shared default
     Boolean autoInitialize => annotationUse("auto_init") in annotations;
 
+    shared default
+    Boolean appended => annotationUse("appended") in annotations;
+
+    shared default
+    Boolean reinitOnUpdate => annotationUse("reinit_on_update") in annotations;
+
     string => "field ``name``: ``type else "String (default)"````defaultValue exists then (" = " + (defaultValue?.string else nothing)) else ""`` ``annotations nonempty then annotations else ""``";
 }
 
