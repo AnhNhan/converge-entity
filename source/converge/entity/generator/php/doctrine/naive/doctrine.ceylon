@@ -92,6 +92,7 @@ Map<String, String> columnTypeName = HashMap
     else
     {
         // TODO: This also specs multi-types as String. Intended behavior?
+        // TODO: Custom types as relationships
         if (exists typ, exists columnType = columnTypeName.get(typ.name))
         {
             annotations.add(DocAnnotation
