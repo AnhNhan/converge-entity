@@ -76,6 +76,11 @@ ClassOrInterface convertStruct(
     Struct? getParents(SingleTypeSpec typeSpec)
 )
 {
+    if (!struct.abstract, !struct.parameters.empty)
+    {
+        throw Exception("Struct ``struct.name`` declares type parameters, but is not abstract. We would not know how to concretize it.");
+    }
+
     value _struct = concretizeStruct(struct, getParents);
     value members = _struct.members
             .flatMap(generateMember)
@@ -103,7 +108,8 @@ ClassOrInterface convertStruct(
     }
     case (false)
     {
-        // No final/abstract modifier
+        // No final/abstract modifier, Doctrine creates proxies that derive from
+        // the entity class
         value modifiers = [];
         return Class
         {
