@@ -76,25 +76,26 @@ ClassOrInterface convertStruct(
     Struct? getParents(SingleTypeSpec typeSpec)
 )
 {
-    value members = struct.members
+    value _struct = concretizeStruct(struct, getParents);
+    value members = _struct.members
             .flatMap(generateMember)
             .coalesced
-            .chain(generateCommonMethods { for (member in struct.members) if (is Field member) member })
+            .chain(generateCommonMethods { for (member in _struct.members) if (is Field member) member })
             // For now, hardcoded
             .chain([Use({Name(["AnhNhan", "Converge", "Infrastructure", "MagicGetter"], false)->null})])
     ;
 
     // TODO: Temporary
     value implements = [];
-    value _extends = struct.concretizing exists then toPHPName(struct.concretizing else nothing);
+    value _extends = _struct.concretizing exists then toPHPName(_struct.concretizing else nothing);
 
-    switch (struct.abstract)
+    switch (_struct.abstract)
     case (true)
     {
         value modifiers = [];
         return Interface
         {
-            name = struct.name;
+            name = _struct.name;
             modifiers = modifiers;
             implements = implements;
             statements = members;
@@ -106,7 +107,7 @@ ClassOrInterface convertStruct(
         value modifiers = [];
         return Class
         {
-            name = struct.name;
+            name = _struct.name;
             modifiers = modifiers;
             _extends = _extends;
             implements = implements;
