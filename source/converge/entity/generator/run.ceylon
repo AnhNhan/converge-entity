@@ -150,6 +150,27 @@ String readFile(String|File path)
     return lines(file).fold("")(plus<String>);
 }
 
+<PackageStmt->[Struct|Alias|FunctionCall+]>[] processAndParseFiles({<Path->String>*} files)
+{
+    value parsePackageFile = despace(right(despace(keyword("package")), packagSpec));
+    function filterPackageFiles(Path->String entry)
+            => falsy(entry.key.elements.last?.equals("package.model"));
+
+    value packageFiles = HashMap
+    {
+        entries = files.filter(filterPackageFiles)
+                .map(acceptEntry((Path path, String contents)
+                    => path.elements.exceptLast.sequence()->requireSuccess(parsePackageFile(contents)).result)
+                );
+    };
+
+    value nonPackageFiles = files.filter(not(filterPackageFiles))
+            .collect((Path->String entry) => (packageFiles[entry.key.elements.exceptLast.sequence()] else noPackage)->pipe2(requireSuccessP(parse), Ok<[<Struct|Alias|FunctionCall>+], Character>.result)(entry.item))
+    ;
+
+    return nonPackageFiles;
+}
+
 [Struct|Alias|FunctionCall+] parseFile(String filePath)
 {
     value contents = readFile(filePath);
