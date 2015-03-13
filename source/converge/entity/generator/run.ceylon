@@ -6,11 +6,15 @@
     Software provided as-is, no warranty
  */
 
+import ceylon.collection {
+    HashMap
+}
 import ceylon.file {
     parsePath,
     File,
     lines,
-    Directory
+    Directory,
+    Path
 }
 
 import converge.entity.generator.php.doctrine.naive {
@@ -19,19 +23,30 @@ import converge.entity.generator.php.doctrine.naive {
 import converge.entity.model.parse_ast {
     Struct,
     Alias,
-    FunctionCall
+    FunctionCall,
+    noPackage,
+    PackageStmt
 }
 
 import de.anhnhan.parser.parsec {
     Ok,
     Error,
-    parseMultipleCompletelyUsing
+    parseMultipleCompletelyUsing,
+    right,
+    requireSuccess,
+    requireSuccessP
 }
 import de.anhnhan.parser.parsec.string {
-    StringParser
+    StringParser,
+    keyword
 }
 import de.anhnhan.php.render {
     renderClassOrInterface
+}
+import de.anhnhan.utils {
+    falsy,
+    acceptEntry,
+    pipe2
 }
 
 "Run the module `converge.entity.generator`."
@@ -45,7 +60,7 @@ shared void run() {
         assert (exists filePath = args.first);
         value contents = scanDir(filePath).map(
             (entry) =>
-                String(entry.key.skip(filePath.size))
+                String(entry.key.string.skip(filePath.size))
                     .trimLeading((char) => char in "/\\")
                     .replaceLast(".model", "")
                 ->parse(entry.item)
@@ -93,7 +108,7 @@ shared void run() {
 
 StringParser<[<Struct|Alias|FunctionCall>+]> parse = parseMultipleCompletelyUsing(despace(pTop));
 
-{<String->String>*} scanDir(String|Directory path)
+{<Path->String>*} scanDir(String|Directory path)
 {
     Directory dir;
 
@@ -111,7 +126,7 @@ StringParser<[<Struct|Alias|FunctionCall>+]> parse = parseMultipleCompletelyUsin
     }
 
     variable
-    {<String->String>*} files = {for (file in dir.files("*.model")) file.path.string->readFile(file)};
+    {<Path->String>*} files = {for (file in dir.files("*.model")) file.path->readFile(file)};
 
     return dir.childDirectories().flatMap(scanDir).chain(files);
 }
