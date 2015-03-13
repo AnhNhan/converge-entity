@@ -54,16 +54,16 @@ Struct concretizeStruct(Struct struct, Struct? getParents(SingleTypeSpec typeSpe
             pickOfType<Field>(concretizedParent.members)
                     // The .map operation is a simple check whether everything has been implemented
                     .map((field)
-            {
-                if (field.abstract, !member_names.contains(field.name))
-                {
-                    throw Exception("Struct ``struct.name`` concretizes "
-                        + "struct ``parent.name``, which declares an abstract "
-                        + "field ``field`` that is not implemented in the "
-                        + "concretizing struct.");
-                }
-                return field;
-            })
+                        {
+                            if (field.abstract, !member_names.contains(field.name))
+                            {
+                                throw Exception("Struct ``struct.name`` concretizes "
+                                    + "struct ``parent.name``, which declares an abstract "
+                                    + "field ``field`` that is not implemented in the "
+                                    + "concretizing struct.");
+                            }
+                            return field;
+                        })
                     .filter(pipe2(Field.name, not(member_names.contains)))
                     .collect(members.push)
             ;
