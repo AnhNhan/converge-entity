@@ -14,7 +14,8 @@ import ceylon.collection {
 import converge.entity.model.parse_ast {
     Field,
     SingleTypeSpec,
-    Expression
+    Expression,
+    annotationUse
 }
 
 import de.anhnhan.php.ast {
@@ -26,8 +27,7 @@ import de.anhnhan.php.ast {
     phpTrue
 }
 import de.anhnhan.utils {
-    cast,
-    nullableEquality
+    cast
 }
 
 Name doctrineCollection = Name(["Doctrine", "ORM", "PersistentCollection"], false);
@@ -49,6 +49,14 @@ Map<String, String> columnTypeName = HashMap
 
     value typ = cast<SingleTypeSpec>(field.type?.unnullified);
 
+    if (annotationUse("id") in field.annotations)
+    {
+        annotations.add(DocAnnotation
+                {
+                    Name(["Id"]);
+                });
+    }
+
     switch (typ?.name)
     case ("Collection")
     {
@@ -62,17 +70,36 @@ Map<String, String> columnTypeName = HashMap
                     NamedParameter("targetEntity", AnnotationValue(PHPString(toPHPName(elementType).render())))
                 });
     }
+    case ("AutoId")
+    {
+        annotations.addAll({
+            DocAnnotation
+            {
+                Name(["Id"]);
+            },
+            DocAnnotation
+            {
+                Name(["Column"]);
+                NamedParameter("type", AnnotationValue(PHPString("integer")))
+            },
+            DocAnnotation
+            {
+                Name(["GeneratedValue"]);
+                NamedParameter("strategy", AnnotationValue(PHPString("AUTO")))
+            }
+        });
+    }
     else
     {
         // TODO: This also specs multi-types as String. Intended behavior?
-        if (exists columnType = columnTypeName.get(typ?.name else "String"))
+        if (exists typ, exists columnType = columnTypeName.get(typ.name))
         {
             annotations.add(DocAnnotation
                     {
                         Name(["Column"]);
                         {
                             NamedParameter("type", AnnotationValue(PHPString(columnType))),
-                            field.unique || nullableEquality("UniqueId", typ?.name) then NamedParameter("unique", AnnotationValue(phpTrue))
+                            field.unique || typ.name == "UniqueId" then NamedParameter("unique", AnnotationValue(phpTrue))
                         }.coalesced;
                     });
         }
