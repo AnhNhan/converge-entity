@@ -34,6 +34,9 @@ interface Field
     Boolean immutable => !mutable;
 
     shared default
+    Boolean abstract => abstractStruct in modifiers;
+
+    shared default
     Boolean autoInitialize => annotationUse("auto_init") in annotations;
 
     shared default
