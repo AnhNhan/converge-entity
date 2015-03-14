@@ -160,9 +160,35 @@ ClassOrInterface convertStructReal(
                 .chain([Use({Name(["AnhNhan", "Converge", "Infrastructure", "MagicGetter"], false)->null})])
         ;
 
-        // TODO: Temporary
-        value implements = [];
-        value _extends = _struct.concretizing exists then toPHPName(_struct.concretizing else nothing);
+        Name[] implements;
+        Name? _extends;
+
+        if (exists parent = _struct.concretizing)
+        {
+            if (exists result = resolveSpec(parent, currentPackage, getParents))
+            {
+                value resultSpec = singleTypeSpec(result.item.name, [], result.key);
+                if (result.item.abstract)
+                {
+                    implements = [toPHPName(resultSpec)];
+                    _extends = null;
+                }
+                else
+                {
+                    implements = [];
+                    _extends = toPHPName(resultSpec);
+                }
+            }
+            else
+            {
+                throw Exception("Could not find struct ``parent``.");
+            }
+        }
+        else
+        {
+            implements = [];
+            _extends = null;
+        }
 
         // No final/abstract modifier, Doctrine creates proxies that derive from
         // the entity class
