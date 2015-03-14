@@ -47,15 +47,10 @@ Struct concretizeStruct(
         PackageStmt parentPackage;
         // Resolve structs indepent of type parameters
         Struct parent;
-        if (exists _parent = getParents(singleTypeSpec(parentSpec.name, [], parentSpec.inPackage)))
+        if (exists result = resolveSpec(parentSpec, currentPackage, getParents))
         {
-            parentPackage = parentSpec.inPackage;
-            parent = _parent;
-        }
-        else if (exists _parent = getParents(singleTypeSpec(parentSpec.name, [], currentPackage)))
-        {
-            parentPackage = currentPackage;
-            parent = _parent;
+            parentPackage = result.key;
+            parent = result.item;
         }
         else
         {
