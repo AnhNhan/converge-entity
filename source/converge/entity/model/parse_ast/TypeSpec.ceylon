@@ -204,3 +204,7 @@ SingleTypeSpec singleTypeSpec(String typeName, Expression[] typeParameters = [],
     }
     return typeSpec;
 }
+
+shared
+SingleTypeSpec parameterlessSingleTypeSpec(SingleTypeSpec typeSpec)
+        => singleTypeSpec(typeSpec.name, [], typeSpec.inPackage);
