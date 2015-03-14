@@ -92,12 +92,13 @@ shared void run() {
                 )
             );
         };
-        value converted = pickOfType<Struct>(processed.flatMap(Entry<PackageStmt, [<Alias|Struct>+]>.item))
-                .map((struct) => convertStruct(struct, typeSpecMap.get))
+        value converted = {for (pakage in processed) for (item in pakage.item) if (is Struct item) pakage.key->item}
+                .map((entry) => convertStruct(entry.item, typeSpecMap.get, entry.key))
                 .map(renderClassOrInterface)
         ;
 
         print(typeSpecMap);
+        print(converted);
         print("\n\n".join(converted));
     }
     case ("benchmark-parse")

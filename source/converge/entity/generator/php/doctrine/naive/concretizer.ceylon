@@ -22,7 +22,9 @@ import converge.entity.model.parse_ast {
     Field,
     abstractStruct,
     field,
-    singleTypeSpec
+    singleTypeSpec,
+    noPackage,
+    PackageStmt
 }
 
 import de.anhnhan.utils {
@@ -31,13 +33,20 @@ import de.anhnhan.utils {
     assertHasAssertionError
 }
 
-Struct concretizeStruct(Struct struct, Struct? getParents(SingleTypeSpec typeSpec), String[] concretizationHierarchy = [])
+Struct concretizeStruct(
+    Struct struct,
+    Struct? getParents(SingleTypeSpec typeSpec),
+    PackageStmt currentPackage = noPackage,
+    String[] concretizationHierarchy = []
+)
 {
     value members = LinkedList(pickOfType<Field>(struct.members));
     value parentSpec = struct.concretizing;
     if (exists parentSpec)
     {
-        value parent = getParents(parentSpec);
+        value parent = getParents(singleTypeSpec(parentSpec.name, [], parentSpec.inPackage))
+                            else getParents(singleTypeSpec(parentSpec.name, [], currentPackage))
+        ;
         switch (parent)
         case (is Null)
         {
@@ -53,7 +62,7 @@ Struct concretizeStruct(Struct struct, Struct? getParents(SingleTypeSpec typeSpe
                 throw ConcretizationCycle(struct, concretizationHierarchy);
             }
 
-            value concretizedParent = concretizeStruct(parent, getParents, concretizationHierarchy.append([struct.name]));
+            value concretizedParent = concretizeStruct(parent, getParents, currentPackage, concretizationHierarchy.append([struct.name]));
             if (!concretizedParent.abstract)
             {
                 throw Exception("Struct ``struct.name`` concretizes struct ``concretizedParent.name``, which is not abstract.");

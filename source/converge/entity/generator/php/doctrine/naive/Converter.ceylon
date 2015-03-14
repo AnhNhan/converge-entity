@@ -20,7 +20,8 @@ import converge.entity.model.parse_ast {
     SymbolName,
     MultiTypeSpec,
     SingleTypeSpec,
-    noPackage
+    noPackage,
+    PackageStmt
 }
 
 import de.anhnhan.php.ast {
@@ -73,7 +74,9 @@ ClassOrInterface convertStruct(
     "The struct to convert."
     Struct struct,
     "Responsible for the retrieval of referenced structs."
-    Struct? getParents(SingleTypeSpec typeSpec)
+    Struct? getParents(SingleTypeSpec typeSpec),
+    "Used to declare the current PHP namespace and resolve relative types."
+    PackageStmt currentPackage = noPackage
 )
 {
     if (!struct.abstract, !struct.parameters.empty)
@@ -81,7 +84,7 @@ ClassOrInterface convertStruct(
         throw Exception("Struct ``struct.name`` declares type parameters, but is not abstract. We would not know how to concretize it.");
     }
 
-    value _struct = concretizeStruct(struct, getParents);
+    value _struct = concretizeStruct(struct, getParents, currentPackage);
     value members = _struct.members
             .flatMap(generateMember)
             .coalesced
