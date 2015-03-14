@@ -44,49 +44,55 @@ Struct concretizeStruct(
     value parentSpec = struct.concretizing;
     if (exists parentSpec)
     {
+        PackageStmt parentPackage;
         // Resolve structs indepent of type parameters
-        value parent = getParents(singleTypeSpec(parentSpec.name, [], parentSpec.inPackage))
-                            else getParents(singleTypeSpec(parentSpec.name, [], currentPackage))
-        ;
-        switch (parent)
-        case (is Null)
+        Struct parent;
+        if (exists _parent = getParents(singleTypeSpec(parentSpec.name, [], parentSpec.inPackage)))
+        {
+            parentPackage = parentSpec.inPackage;
+            parent = _parent;
+        }
+        else if (exists _parent = getParents(singleTypeSpec(parentSpec.name, [], currentPackage)))
+        {
+            parentPackage = currentPackage;
+            parent = _parent;
+        }
+        else
         {
             throw Exception("Struct ``struct.name`` (package ``currentPackage.nameParts``) concretizes struct ``parentSpec.name``, which does not exist.");
         }
-        case (is Struct)
+
+        // Prevent inheritance cycles, which will cause an infinite loop
+        // O(n) space, O(n²) time. Well, n is usually small enough (does anybody get over 5 in userland projects?)
+        if (parent.name in concretizationHierarchy)
         {
-            // Prevent inheritance cycles, which will cause an infinite loop
-            // O(n) space, O(n²) time. Well, n is usually small enough (does anybody get over 5 in userland projects?)
-            if (parent.name in concretizationHierarchy)
-            {
-                assert (nonempty concretizationHierarchy);
-                throw ConcretizationCycle(struct, concretizationHierarchy);
-            }
-
-            value concretizedParent = concretizeStruct(parent, getParents, parentSpec.inPackage, concretizationHierarchy.append([struct.name]));
-            if (!concretizedParent.abstract)
-            {
-                throw Exception("Struct ``struct.name`` concretizes struct ``concretizedParent.name``, which is not abstract.");
-            }
-
-            value member_names = members*.name;
-            pickOfType<Field>(concretizedParent.members)
-                    // The .map operation is a simple check whether everything has been implemented
-                    .map((field)
-                        {
-                            if (field.abstract, !member_names.contains(field.name))
-                            {
-                                throw Exception("Struct ``struct.name`` concretizes "
-                                    + "struct ``parent.name``, which declares an abstract "
-                                    + "field ``field`` that is not implemented in the "
-                                    + "concretizing struct.");
-                            }
-                            return field;
-                        })
-                    .filter(pipe2(Field.name, not(member_names.contains)))
-                    .collect(members.push)
-            ;
+            assert (nonempty concretizationHierarchy);
+            throw ConcretizationCycle(struct, concretizationHierarchy);
         }
+
+        value concretizedParent = concretizeStruct(parent, getParents, parentSpec.inPackage, concretizationHierarchy.append([struct.name]));
+        if (!concretizedParent.abstract)
+        {
+            throw Exception("Struct ``struct.name`` concretizes struct ``concretizedParent.name``, which is not abstract.");
+        }
+
+        value member_names = members*.name;
+        pickOfType<Field>(concretizedParent.members)
+                // The .map operation is a simple check whether everything has been implemented
+                .map((field)
+                    {
+                        if (field.abstract, !member_names.contains(field.name))
+                        {
+                            throw Exception("Struct ``struct.name`` concretizes "
+                                + "struct ``parent.name``, which declares an abstract "
+                                + "field ``field`` that is not implemented in the "
+                                + "concretizing struct.");
+                        }
+                        return field;
+                    })
+                .filter(pipe2(Field.name, not(member_names.contains)))
+                .collect(members.push)
+        ;
     }
 
     return createStruct
