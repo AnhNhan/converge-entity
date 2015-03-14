@@ -21,7 +21,9 @@ import converge.entity.model.parse_ast {
     MultiTypeSpec,
     SingleTypeSpec,
     noPackage,
-    PackageStmt
+    PackageStmt,
+    singleTypeSpec,
+    InPackage
 }
 
 import de.anhnhan.php.ast {
@@ -51,7 +53,10 @@ import de.anhnhan.php.ast {
     varRef,
     FunctionCallArgument,
     propRef,
-    private
+    private,
+    parent,
+    staticRef,
+    Namespace
 }
 import de.anhnhan.utils {
     ucfirst,
@@ -69,9 +74,9 @@ Name toPHPName(SingleTypeSpec type)
     return Name(name, type.inPackage == noPackage);
 }
 
-// TODO: Include parents + transactions for reification & generation
+// TODO: Include transactions for concretization & generation
 shared
-ClassOrInterface convertStruct(
+ClassOrInterface|Namespace convertStruct(
     "The struct to convert."
     Struct struct,
     "Responsible for the retrieval of referenced structs."
@@ -80,44 +85,91 @@ ClassOrInterface convertStruct(
     PackageStmt currentPackage = noPackage
 )
 {
-    if (!struct.abstract, !struct.parameters.empty)
+    value converted = convertStructReal(struct, getParents, currentPackage);
+    // Why does a switch statement not work? (noPackage not assignable to Identifyable?)
+    if (currentPackage == noPackage)
     {
-        throw Exception("Struct ``struct.name`` declares type parameters, but is not abstract. We would not know how to concretize it.");
+        return converted;
     }
+    else if (is InPackage currentPackage)
+    {
+        return Namespace(Name(currentPackage.nameParts), {converted});
+    }
+    else
+    {
+        assert (false);
+    }
+}
 
-    value _struct = concretizeStruct(struct, getParents, currentPackage);
-    value members = _struct.members
-            .flatMap(generateMember)
-            .coalesced
-            .chain(generateCommonMethods(_struct))
-            // For now, hardcoded
-            .chain([Use({Name(["AnhNhan", "Converge", "Infrastructure", "MagicGetter"], false)->null})])
-    ;
-
-    // TODO: Temporary
-    value implements = [];
-    value _extends = _struct.concretizing exists then toPHPName(_struct.concretizing else nothing);
-
-    switch (_struct.abstract)
+ClassOrInterface convertStructReal(
+    "The struct to convert."
+    Struct struct,
+    "Responsible for the retrieval of referenced structs."
+    Struct? getParents(SingleTypeSpec typeSpec),
+    "Used to declare the current PHP namespace and resolve relative types."
+    PackageStmt currentPackage = noPackage
+)
+{
+    switch (struct.abstract)
     case (true)
     {
+        value parent = struct.concretizing;
+        Name[] implements;
+        if (exists parent)
+        {
+            implements = [toPHPName(singleTypeSpec(parent.name, [], parent.inPackage))];
+        }
+        else
+        {
+            implements = [];
+        }
+
         value modifiers = [];
         return Interface
         {
-            name = _struct.name;
+            name = struct.name;
             modifiers = modifiers;
             implements = implements;
-            statements = members;
+            statements = pickOfType<Field>(struct.members)
+                    //.filter(Field.abstract)
+                    .map((field) => Method
+                    {
+                        func = Function
+                        {
+                            field.name;
+                        };
+                        inInterface = true;
+                        public
+                    })
+            ;
         };
     }
     case (false)
     {
+        if (!struct.abstract, !struct.parameters.empty)
+        {
+            throw Exception("Struct ``struct.name`` declares type parameters, but is not abstract. We would not know how to concretize it.");
+        }
+
+        value _struct = concretizeStruct(struct, getParents, currentPackage);
+        value members = _struct.members
+                .flatMap(generateMember)
+                .coalesced
+                .chain(generateCommonMethods(_struct))
+        // For now, hardcoded
+                .chain([Use({Name(["AnhNhan", "Converge", "Infrastructure", "MagicGetter"], false)->null})])
+        ;
+
+        // TODO: Temporary
+        value implements = [];
+        value _extends = _struct.concretizing exists then toPHPName(_struct.concretizing else nothing);
+
         // No final/abstract modifier, Doctrine creates proxies that derive from
         // the entity class
         value modifiers = [];
         return Class
         {
-            name = _struct.name;
+            name = struct.name;
             modifiers = modifiers;
             _extends = _extends;
             implements = implements;
@@ -258,7 +310,14 @@ ClassOrInterface convertStruct(
             modifiers = {public};
             func = Function {
                 name = "update";
-                statements = fieldsToReinitialize.map(initializeField);
+                statements = fieldsToReinitialize.map(initializeField)
+                        .chain(struct.concretizing exists
+                                    then {
+                                        FunctionInvocation(staticRef(parent, "update"), [])
+                                    }
+                                    else {}
+                        )
+                ;
             };
         }
     };
