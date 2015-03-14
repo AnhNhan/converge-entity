@@ -7,19 +7,28 @@
  */
 
 import ceylon.collection {
-    LinkedList
+    LinkedList,
+    HashSet,
+    HashMap
+}
+import ceylon.test {
+    test
 }
 
 import converge.entity.model.parse_ast {
     createStruct=struct,
     Struct,
     SingleTypeSpec,
-    Field
+    Field,
+    abstractStruct,
+    field,
+    singleTypeSpec
 }
 
 import de.anhnhan.utils {
     pickOfType,
-    pipe2
+    pipe2,
+    assertHasAssertionError
 }
 
 Struct concretizeStruct(Struct struct, Struct? getParents(SingleTypeSpec typeSpec), String[] concretizationHierarchy = [])
@@ -90,3 +99,57 @@ class ConcretizationCycle(
 )
         extends Exception("Struct ``struct.name`` concretizes struct ``struct.concretizing?.name else nothing``, which created a cyclic hierarchy. (``hierarchy``)")
 {}
+
+// -----------------------------------------------------------------------------
+//                                  TESTS
+// -----------------------------------------------------------------------------
+
+Struct structA = createStruct(
+    "A",
+    HashSet{abstractStruct},
+    null,
+    [],
+    [
+        field("foo", singleTypeSpec("Text"), null, []),
+        field("bar", singleTypeSpec("Integer"), null, [], HashSet{abstractStruct})
+    ],
+    []
+);
+
+"Incorrectly implements `A`."
+Struct structB = createStruct(
+    "B",
+    emptySet,
+    singleTypeSpec("A"),
+    [],
+    [
+        field("baz", null, null, [])
+    ],
+    []
+);
+
+"Correctly implements `A`."
+Struct structC = createStruct(
+    "C",
+    emptySet,
+    singleTypeSpec("A"),
+    [],
+    [
+        field("baz", null, null, []),
+        field("bar", null, null, [])
+    ],
+    []
+);
+
+Map<SingleTypeSpec, Struct> structMap = HashMap
+{
+    entries = {structA, structB, structB}.map((struct) => singleTypeSpec(struct.name)->struct);
+};
+
+test
+void concretizer_recognizes_inheritance_cycles()
+{
+    assertHasAssertionError(() => concretizeStruct(structB, structMap.get));
+    //print(render(convertStruct(structC, structMap.get)));
+    concretizeStruct(structC, structMap.get);
+}
