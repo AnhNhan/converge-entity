@@ -10,10 +10,12 @@ shared
 interface StructModifier
         of abstractStruct
          | uniqueField
+         | primaryField
 {}
 
 shared object abstractStruct satisfies StructModifier { string = "abstract"; }
 shared object uniqueField satisfies StructModifier { string = "unique"; }
+shared object primaryField satisfies StructModifier { string = "primary"; }
 
 shared
 interface Struct
@@ -39,7 +41,7 @@ interface Struct
     AnnotationUse[] annotations;
 
     shared
-    Boolean abstract => modifiers.contains(abstractStruct);
+    Boolean abstract => abstractStruct in modifiers;
 
     string => "Struct ``name`` concretizes ``concretizing else "none"``
                {

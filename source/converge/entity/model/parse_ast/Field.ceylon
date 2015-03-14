@@ -28,6 +28,9 @@ interface Field
     shared
     Boolean unique => uniqueField in modifiers;
 
+    shared
+    Boolean primary => primaryField in modifiers;
+
     shared default
     Boolean mutable => annotationUse("mutable") in annotations;
     shared
