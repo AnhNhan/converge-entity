@@ -290,7 +290,16 @@ ClassOrInterface convertStruct(
         // TODO: Sub-Uids
         assert (is SingleTypeSpec type = fieldUid.type);
         assert (type.name == "UniqueId");
-        assert (is [StringLiteral+] params = type.parameters);
+        value params = type.parameters;
+        String uidType;
+        if (is StringLiteral firstParam = params.first)
+        {
+            uidType = firstParam.contents;
+        }
+        else
+        {
+            throw Exception("Field ``fieldUid`` does not correctly declare UniqueId!");
+        }
 
         methods = methods.chain
         {
@@ -301,7 +310,7 @@ ClassOrInterface convertStruct(
                 {
                     name = "uidType";
                     statements = {
-                        Return(PHPString(params.first.contents))
+                        Return(PHPString(uidType))
                     };
                 };
             }
