@@ -23,9 +23,9 @@ import converge.entity.generator.php.doctrine.naive {
 import converge.entity.model.parse_ast {
     Struct,
     Alias,
-    FunctionCall,
     noPackage,
-    PackageStmt
+    PackageStmt,
+    singleTypeSpec
 }
 
 import de.anhnhan.parser.parsec {
@@ -46,7 +46,8 @@ import de.anhnhan.php.render {
 import de.anhnhan.utils {
     falsy,
     acceptEntry,
-    pipe2
+    pipe2,
+    pickOfType
 }
 
 "Run the module `converge.entity.generator`."
@@ -78,16 +79,26 @@ shared void run() {
         print(result);
 
     }
-    case ("test-single-parse-generate-print")
+    case ("test-scan-and-convert")
     {
         assert (exists filePath = args.first);
-        value generated = parseFile(filePath)
-                .map((obj) { assert (is Struct obj); return obj; })
-                .map((Struct struct) => convertStruct(struct, (Anything _) => null))
+        value processed = processAndParseFiles(scanDir(filePath));
+        // TODO: At some point inlcude Aliases
+        value typeSpecMap = HashMap
+        {
+            entries = processed.flatMap(
+                acceptEntry((PackageStmt containedPackage, [<Struct|Alias>+] stuff)
+                    => pickOfType<Struct>(stuff).map((struct) => singleTypeSpec(struct.name, [], containedPackage)->struct)
+                )
+            );
+        };
+        value converted = pickOfType<Struct>(processed.flatMap(Entry<PackageStmt, [<Alias|Struct>+]>.item))
+                .map((struct) => convertStruct(struct, typeSpecMap.get))
                 .map(renderClassOrInterface)
         ;
 
-        print("\n\n".join(generated));
+        print(typeSpecMap);
+        print("\n\n".join(converted));
     }
     case ("benchmark-parse")
     {
@@ -106,7 +117,7 @@ shared void run() {
     }
 }
 
-StringParser<[<Struct|Alias|FunctionCall>+]> parse = parseMultipleCompletelyUsing(despace(pTop));
+StringParser<[<Struct|Alias>+]> parse = parseMultipleCompletelyUsing(despace(pTop));
 
 {<Path->String>*} scanDir(String|Directory path)
 {
@@ -150,7 +161,7 @@ String readFile(String|File path)
     return lines(file).fold("")(plus<String>);
 }
 
-<PackageStmt->[Struct|Alias|FunctionCall+]>[] processAndParseFiles({<Path->String>*} files)
+<PackageStmt->[Struct|Alias+]>[] processAndParseFiles({<Path->String>*} files)
 {
     value parsePackageFile = despace(right(despace(keyword("package")), packagSpec));
     function filterPackageFiles(Path->String entry)
@@ -165,13 +176,13 @@ String readFile(String|File path)
     };
 
     value nonPackageFiles = files.filter(not(filterPackageFiles))
-            .collect((Path->String entry) => (packageFiles[entry.key.elements.exceptLast.sequence()] else noPackage)->pipe2(requireSuccessP(parse), Ok<[<Struct|Alias|FunctionCall>+], Character>.result)(entry.item))
+            .collect((Path->String entry) => (packageFiles[entry.key.elements.exceptLast.sequence()] else noPackage)->pipe2(requireSuccessP(parse), Ok<[<Struct|Alias>+], Character>.result)(entry.item))
     ;
 
     return nonPackageFiles;
 }
 
-[Struct|Alias|FunctionCall+] parseFile(String filePath)
+[Struct|Alias+] parseFile(String filePath)
 {
     value contents = readFile(filePath);
     value result = parse(contents);
@@ -180,6 +191,6 @@ String readFile(String|File path)
         print(result);
         assert (false);
     }
-    assert (is Ok<[<Struct|Alias|FunctionCall>+], Character> result);
+    assert (is Ok<[<Struct|Alias>+], Character> result);
     return result.result;
 }
