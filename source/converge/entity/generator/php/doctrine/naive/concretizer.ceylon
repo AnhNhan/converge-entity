@@ -44,13 +44,14 @@ Struct concretizeStruct(
     value parentSpec = struct.concretizing;
     if (exists parentSpec)
     {
+        // Resolve structs indepent of type parameters
         value parent = getParents(singleTypeSpec(parentSpec.name, [], parentSpec.inPackage))
                             else getParents(singleTypeSpec(parentSpec.name, [], currentPackage))
         ;
         switch (parent)
         case (is Null)
         {
-            throw Exception("Struct ``struct.name`` concretizes struct ``parentSpec.name``, which does not exist.");
+            throw Exception("Struct ``struct.name`` (package ``currentPackage.nameParts``) concretizes struct ``parentSpec.name``, which does not exist.");
         }
         case (is Struct)
         {
@@ -62,7 +63,7 @@ Struct concretizeStruct(
                 throw ConcretizationCycle(struct, concretizationHierarchy);
             }
 
-            value concretizedParent = concretizeStruct(parent, getParents, currentPackage, concretizationHierarchy.append([struct.name]));
+            value concretizedParent = concretizeStruct(parent, getParents, parentSpec.inPackage, concretizationHierarchy.append([struct.name]));
             if (!concretizedParent.abstract)
             {
                 throw Exception("Struct ``struct.name`` concretizes struct ``concretizedParent.name``, which is not abstract.");
