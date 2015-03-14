@@ -41,7 +41,7 @@ import de.anhnhan.parser.parsec.string {
     keyword
 }
 import de.anhnhan.php.render {
-    renderClassOrInterface
+    render
 }
 import de.anhnhan.utils {
     falsy,
@@ -80,8 +80,14 @@ shared void run() {
     }
     case ("test-scan-and-convert")
     {
+        value start = system.nanoseconds;
         assert (exists filePath = args.first);
+
+        value startParse = system.nanoseconds;
         value processed = processAndParseFiles(scanDir(filePath));
+        value endParse = system.nanoseconds;
+
+        value startConversion = system.nanoseconds;
         // TODO: At some point inlcude Aliases
         value typeSpecMap = HashMap
         {
@@ -93,12 +99,15 @@ shared void run() {
         };
         value converted = {for (pakage in processed) for (item in pakage.item) if (is Struct item) pakage.key->item}
                 .map((entry) => convertStruct(entry.item, typeSpecMap.get, entry.key))
-                .map(renderClassOrInterface)
+                .collect(render)
         ;
+        value endConversion = system.nanoseconds;
 
         print(typeSpecMap);
-        print(converted);
         print("\n\n".join(converted));
+        print("\nTook (read + parse) ``(endParse - startParse) / 1_000 / 1_000.0``ms");
+        print("\nTook (convert + render) ``(endConversion - startConversion) / 1_000 / 1_000.0``ms");
+        print("\nTook (total) ``(system.nanoseconds - start) / 1_000 / 1_000.0``ms");
     }
     case ("benchmark-parse")
     {
