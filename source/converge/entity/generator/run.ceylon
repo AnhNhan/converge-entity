@@ -77,7 +77,6 @@ shared void run() {
         assert (exists filePath = args.first);
         value result = parseFile(filePath);
         print(result);
-
     }
     case ("test-scan-and-convert")
     {
