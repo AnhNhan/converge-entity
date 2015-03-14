@@ -58,7 +58,8 @@ import de.anhnhan.utils {
     pipe2,
     actOnNullable,
     falsyFun,
-    cast
+    cast,
+    pickOfType
 }
 
 shared
@@ -88,7 +89,7 @@ ClassOrInterface convertStruct(
     value members = _struct.members
             .flatMap(generateMember)
             .coalesced
-            .chain(generateCommonMethods { for (member in _struct.members) if (is Field member) member })
+            .chain(generateCommonMethods(_struct))
             // For now, hardcoded
             .chain([Use({Name(["AnhNhan", "Converge", "Infrastructure", "MagicGetter"], false)->null})])
     ;
@@ -229,8 +230,9 @@ ClassOrInterface convertStruct(
 
 "Generates common methods like the constructor, certain kinds of update methods
  etc."
-{Method*} generateCommonMethods({Field*} fields)
+{Method*} generateCommonMethods(Struct struct)
 {
+    value fields = pickOfType<Field>(struct.members);
     value specialValueFields = ["id", "uid"];
 
     value fieldIsCollection = falsyFun(pipe2(Field.type, pipe2(cast<SingleTypeSpec>, actOnNullable(pipe2(SingleTypeSpec.name, "Collection".equals)))));
