@@ -70,7 +70,7 @@ import de.anhnhan.utils {
 shared
 Name toPHPName(SingleTypeSpec type)
 {
-    assert (is [String+] name = type.inPackage.nameParts.append([type.name]));
+    assert (nonempty name = type.inPackage.nameParts.append([type.name]));
     return Name(name, type.inPackage == noPackage);
 }
 
