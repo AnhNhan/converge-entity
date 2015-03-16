@@ -113,95 +113,109 @@ ClassOrInterface convertStructReal(
     switch (struct.abstract)
     case (true)
     {
-        value parent = struct.concretizing;
-        Name[] implements;
-        if (exists parent)
-        {
-            implements = [toPHPName(singleTypeSpec(parent.name, [], parent.inPackage))];
-        }
-        else
-        {
-            implements = [];
-        }
-
-        value modifiers = [];
-        return Interface
-        {
-            name = struct.name;
-            modifiers = modifiers;
-            implements = implements;
-            statements = pickOfType<Field>(struct.members)
-                    //.filter(Field.abstract)
-                    .map((field) => Method
-                    {
-                        func = Function
-                        {
-                            field.name;
-                        };
-                        inInterface = true;
-                        public
-                    })
-            ;
-        };
+        return convertToInterface(struct);
     }
     case (false)
     {
-        if (!struct.abstract, !struct.parameters.empty)
-        {
-            throw Exception("Struct ``struct.name`` declares type parameters, but is not abstract. We would not know how to concretize it.");
-        }
+        return convertToClass(struct, getParents, currentPackage);
+    }
+}
 
-        value _struct = concretizeStruct(struct, getParents, currentPackage);
-        value members = _struct.members
-                .flatMap(generateMember)
-                .coalesced
-                .chain(generateCommonMethods(_struct))
-        // For now, hardcoded
-                .chain([Use({Name(["AnhNhan", "Converge", "Infrastructure", "MagicGetter"], false)->null})])
-        ;
+Interface convertToInterface(Struct struct)
+{
+    assert (struct.abstract);
 
-        Name[] implements;
-        Name? _extends;
+    value parent = struct.concretizing;
+    Name[] implements;
+    if (exists parent)
+    {
+        implements = [toPHPName(singleTypeSpec(parent.name, [], parent.inPackage))];
+    }
+    else
+    {
+        implements = [];
+    }
 
-        if (exists parent = _struct.concretizing)
-        {
-            if (exists result = resolveSpec(parent, currentPackage, getParents))
+    value modifiers = [];
+    return Interface
+    {
+        name = struct.name;
+        modifiers = modifiers;
+        implements = implements;
+        statements = pickOfType<Field>(struct.members)
+        //.filter(Field.abstract)
+                .map((field) => Method
             {
-                value resultSpec = singleTypeSpec(result.item.name, [], result.key);
-                if (result.item.abstract)
-                {
-                    implements = [toPHPName(resultSpec)];
-                    _extends = null;
-                }
-                else
-                {
-                    implements = [];
-                    _extends = toPHPName(resultSpec);
-                }
+            func = Function
+            {
+                field.name;
+            };
+            inInterface = true;
+            public
+        })
+        ;
+    };
+}
+
+Class convertToClass(Struct struct, Struct? getParents(SingleTypeSpec typeSpec), PackageStmt currentPackage)
+{
+    assert (!struct.abstract);
+
+    if (!struct.parameters.empty)
+    {
+        throw Exception("Struct ``struct.name`` declares type parameters, but is not abstract. We would not know how to concretize it.");
+    }
+
+    value _struct = concretizeStruct(struct, getParents, currentPackage);
+    value members = _struct.members
+            .flatMap(generateMember)
+            .coalesced
+            .chain(generateCommonMethods(_struct))
+            // For now, hardcoded
+            .chain([Use({Name(["AnhNhan", "Converge", "Infrastructure", "MagicGetter"], false)->null})])
+    ;
+
+    Name[] implements;
+    Name? _extends;
+
+    if (exists parent = _struct.concretizing)
+    {
+        if (exists result = resolveSpec(parent, currentPackage, getParents))
+        {
+            value resultSpec = singleTypeSpec(result.item.name, [], result.key);
+            if (result.item.abstract)
+            {
+                implements = [toPHPName(resultSpec)];
+                _extends = null;
             }
             else
             {
-                throw Exception("Could not find struct ``parent``.");
+                implements = [];
+                _extends = toPHPName(resultSpec);
             }
         }
         else
         {
-            implements = [];
-            _extends = null;
+            throw Exception("Could not find struct ``parent``.");
         }
-
-        // No final/abstract modifier, Doctrine creates proxies that derive from
-        // the entity class
-        value modifiers = [];
-        return Class
-        {
-            name = struct.name;
-            modifiers = modifiers;
-            _extends = _extends;
-            implements = implements;
-            statements = members;
-        };
     }
+    else
+    {
+        implements = [];
+        _extends = null;
+    }
+
+    // No final/abstract modifier, Doctrine creates proxies that derive from
+    // the entity class
+    value modifiers = [];
+    return Class
+    {
+        name = struct.name;
+        modifiers = modifiers;
+        _extends = _extends;
+        implements = implements;
+        statements = members;
+    };
 }
 
 {Property|Const|Method|Null*} generateMember(Field|FunctionCall member)
