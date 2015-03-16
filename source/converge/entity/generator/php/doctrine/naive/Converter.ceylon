@@ -248,7 +248,16 @@ ClassOrInterface convertStructReal(
                     generateGetterMethod(member),
                     collectionMethod(member.name, "add"),
                     collectionMethod(member.name, "remove"),
-                    collectionMethod(member.name, "has")
+                    Method
+                    {
+                        Function
+                        {
+                            "has" + ucfirst(member.name);
+                            {FunctionDefinitionParameter(member.name)};
+                            Return(FunctionInvocation { propRef(thisRef(member.name), "has"); FunctionCallArgument(varRef(member.name)) })
+                        };
+                        _final, public
+                    }
                 };
             }
             case ("ExternalReference")
