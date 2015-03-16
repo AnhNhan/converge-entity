@@ -24,7 +24,8 @@ import converge.entity.model.parse_ast {
     field,
     singleTypeSpec,
     noPackage,
-    PackageStmt
+    PackageStmt,
+    FunctionCall
 }
 
 import de.anhnhan.utils {
@@ -40,7 +41,10 @@ Struct concretizeStruct(
     String[] concretizationHierarchy = []
 )
 {
-    value members = LinkedList(pickOfType<Field>(struct.members));
+    value members = LinkedList<Field|FunctionCall>();
+    value appended_members = LinkedList<Field|FunctionCall>();
+    value original_members = struct.members;
+    value original_fields = pickOfType<Field>(struct.members);
     value parentSpec = struct.concretizing;
     if (exists parentSpec)
     {
@@ -71,9 +75,36 @@ Struct concretizeStruct(
             throw Exception("Struct ``struct.name`` concretizes struct ``concretizedParent.name``, which is not abstract.");
         }
 
-        value member_names = members*.name;
-        pickOfType<Field>(concretizedParent.members)
+        value member_names = original_fields*.name;
+        value inherited_fields = pickOfType<Field>(concretizedParent.members);
+        value inherited_funcalls = pickOfType<FunctionCall>(concretizedParent.members);
+
+        appended_members.addAll(
+            inherited_fields
+                    .filter(Field.appended)
+                    .filter(pipe2(Field.name, not(member_names.contains)))
+                    .map((field)
+                    {
+                        if (field.abstract)
+                        {
+                            throw Exception("Struct ``parent.name`` contains a
+                                             field ``field.name`` that is
+                                             appended, but it is abstract.
+                                             Appended fields can not be abstract
+                                             (as that would be pointless, since
+                                             it would be overwritten by the
+                                             implementation).");
+                        }
+                        return field;
+                    })
+        );
+        appended_members.addAll(inherited_funcalls);
+
+        inherited_fields
+                .filter(not(Field.appended))
                 // The .map operation is a simple check whether everything has been implemented
+                // It simply checks whether an implementation exists, it does not
+                // apply any constraints like type checking
                 .map((field)
                     {
                         if (field.abstract, !member_names.contains(field.name))
@@ -89,6 +120,9 @@ Struct concretizeStruct(
                 .collect(members.push)
         ;
     }
+
+    members.addAll(original_members);
+    members.addAll(appended_members);
 
     return createStruct
     {
