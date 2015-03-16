@@ -12,31 +12,28 @@ import ceylon.collection {
 
 import converge.entity.model.parse_ast {
     Field,
-    MultiTypeSpec,
     SingleTypeSpec
 }
 
 import de.anhnhan.php.ast {
     PHPExpression=Expression,
     NewObject,
-    Name
+    Name,
+    phpNull
 }
 
 Map<String, PHPExpression> autoInitValue = HashMap
 {
-    "DateTime"->NewObject(Name(["DateTime"], false))
+    "DateTime"->NewObject(Name(["DateTime"], false)),
+    "TransactionSet"->phpNull
 };
 
 PHPExpression autoInitValueFor(Field field)
 {
-    value type = field.type;
+    value type = field.type?.unnullified;
     if (is Null type)
     {
         throw Exception("Field ``field.name`` requires a type for auto init behavior (you don't want an empty string, no?)");
-    }
-    if (is MultiTypeSpec type)
-    {
-        throw Exception("Field ``field.name`` has a multi-type spec (type alias). We do not know how to resolve auto init values for multi-types");
     }
     assert (is SingleTypeSpec type);
     value val = autoInitValue[type.name];
