@@ -152,15 +152,53 @@ Struct structC = createStruct(
     []
 );
 
+// Cyclic inheritance
+Struct structFoo = createStruct(
+    "Foo",
+    emptySet,
+    singleTypeSpec("Baz"),
+    [], [], []
+);
+
+Struct structBar = createStruct(
+    "Bar",
+    emptySet,
+    singleTypeSpec("Foo"),
+    [], [], []
+);
+
+Struct structBaz = createStruct(
+    "Baz",
+    emptySet,
+    singleTypeSpec("Bar"),
+    [], [], []
+);
+
 Map<SingleTypeSpec, Struct> structMap = HashMap
 {
-    entries = {structA, structB, structB}.map((struct) => singleTypeSpec(struct.name)->struct);
+    entries = {
+        structA,
+        structB,
+        structC,
+        structFoo,
+        structBar,
+        structBaz
+    }.map((struct) => singleTypeSpec(struct.name)->struct);
 };
 
 test
-void concretizer_recognizes_inheritance_cycles()
+void concretizer_recognizes_incorrect_implementations()
 {
     assertHasAssertionError(() => concretizeStruct(structB, structMap.get));
     //print(render(convertStruct(structC, structMap.get)));
     concretizeStruct(structC, structMap.get);
+}
+
+test
+void concretizer_recognizes_inheritance_cycles()
+{
+    // Error should surface with all three
+    assertHasAssertionError(() => concretizeStruct(structFoo, structMap.get));
+    assertHasAssertionError(() => concretizeStruct(structBar, structMap.get));
+    assertHasAssertionError(() => concretizeStruct(structBaz, structMap.get));
 }
