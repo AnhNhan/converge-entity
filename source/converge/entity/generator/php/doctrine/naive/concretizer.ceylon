@@ -217,8 +217,8 @@ Struct structVeryTop = createStruct(
     null,
     [],
     [
-        field("a", null, null, []),
-        field("f", null, null, [annotationUse("appended")])
+            field("a", null, null, []),
+            field("f", null, null, [annotationUse("appended")])
     ],
     []
 );
@@ -229,8 +229,8 @@ Struct structTop = createStruct(
     singleTypeSpec("VeryTop"),
     [],
     [
-    field("b", null, null, []),
-    field("e", null, null, [annotationUse("appended")])
+        field("b", null, null, []),
+        field("e", null, null, [annotationUse("appended")])
     ],
     []
 );
@@ -241,8 +241,8 @@ Struct structBottom = createStruct(
     singleTypeSpec("Top"),
     [],
     [
-    field("c", null, null, []),
-    field("d", null, null, [])
+        field("c", null, null, []),
+        field("d", null, null, [])
     ],
     []
 );
