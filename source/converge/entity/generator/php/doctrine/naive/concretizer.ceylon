@@ -12,7 +12,8 @@ import ceylon.collection {
     HashMap
 }
 import ceylon.test {
-    test
+    test,
+    assertEquals
 }
 
 import converge.entity.model.parse_ast {
@@ -25,7 +26,8 @@ import converge.entity.model.parse_ast {
     singleTypeSpec,
     noPackage,
     PackageStmt,
-    FunctionCall
+    FunctionCall,
+    annotationUse
 }
 
 import de.anhnhan.utils {
@@ -117,7 +119,7 @@ Struct concretizeStruct(
                         return field;
                     })
                 .filter(pipe2(Field.name, not(member_names.contains)))
-                .collect(members.push)
+                .collect(members.add)
         ;
     }
 
@@ -189,23 +191,60 @@ Struct structC = createStruct(
 // Cyclic inheritance
 Struct structFoo = createStruct(
     "Foo",
-    emptySet,
+    HashSet { abstractStruct },
     singleTypeSpec("Baz"),
     [], [], []
 );
 
 Struct structBar = createStruct(
     "Bar",
-    emptySet,
+    HashSet { abstractStruct },
     singleTypeSpec("Foo"),
     [], [], []
 );
 
 Struct structBaz = createStruct(
     "Baz",
-    emptySet,
+    HashSet { abstractStruct },
     singleTypeSpec("Bar"),
     [], [], []
+);
+
+// Member order
+Struct structVeryTop = createStruct(
+    "VeryTop",
+    HashSet { abstractStruct },
+    null,
+    [],
+    [
+        field("a", null, null, []),
+        field("f", null, null, [annotationUse("appended")])
+    ],
+    []
+);
+
+Struct structTop = createStruct(
+    "Top",
+    HashSet { abstractStruct },
+    singleTypeSpec("VeryTop"),
+    [],
+    [
+    field("b", null, null, []),
+    field("e", null, null, [annotationUse("appended")])
+    ],
+    []
+);
+
+Struct structBottom = createStruct(
+    "Bottom",
+    emptySet,
+    singleTypeSpec("Top"),
+    [],
+    [
+    field("c", null, null, []),
+    field("d", null, null, [])
+    ],
+    []
 );
 
 Map<SingleTypeSpec, Struct> structMap = HashMap
@@ -216,7 +255,10 @@ Map<SingleTypeSpec, Struct> structMap = HashMap
         structC,
         structFoo,
         structBar,
-        structBaz
+        structBaz,
+        structVeryTop,
+        structTop,
+        structBottom
     }.map((struct) => singleTypeSpec(struct.name)->struct);
 };
 
@@ -232,7 +274,20 @@ test
 void concretizer_recognizes_inheritance_cycles()
 {
     // Error should surface with all three
+    // TODO: Create an assert on the exception type so we can be sure we didn't
+    // catch something like 'Concretizing abstract struct'.
     assertHasAssertionError(() => concretizeStruct(structFoo, structMap.get));
     assertHasAssertionError(() => concretizeStruct(structBar, structMap.get));
     assertHasAssertionError(() => concretizeStruct(structBaz, structMap.get));
+}
+
+test
+void concretizer_respects_member_order()
+{
+    value concretized = concretizeStruct(structBottom, structMap.get);
+    value members = concretized.members;
+    assertEquals(
+        pickOfType<Field>(members)*.name,
+        ('a'..'f').collect((char) => String { char })
+    );
 }
