@@ -27,7 +27,6 @@ import de.anhnhan.php.ast {
     phpTrue
 }
 import de.anhnhan.utils {
-    cast,
     nullableEquality
 }
 
@@ -48,7 +47,7 @@ Map<String, String> columnTypeName = HashMap
 {
     value annotations = LinkedList<DocAnnotation>();
 
-    value typ = cast<SingleTypeSpec>(field.type?.unnullified);
+    value typ = field.type?.unnullified;
 
     if (annotationUse("id") in field.annotations)
     {
