@@ -27,7 +27,8 @@ import de.anhnhan.php.ast {
     phpTrue
 }
 import de.anhnhan.utils {
-    cast
+    cast,
+    nullableEquality
 }
 
 Name doctrineCollection = Name(["Doctrine", "ORM", "PersistentCollection"], false);
@@ -93,16 +94,39 @@ Map<String, String> columnTypeName = HashMap
     {
         // TODO: This also specs multi-types as String. Intended behavior?
         // TODO: Custom types as relationships
-        if (exists typ, exists columnType = columnTypeName.get(typ.name))
-        {
-            annotations.add(DocAnnotation
+
+        function addSimpleColumnAnnotation(SingleTypeSpec? typ, String columnType)
+                => annotations.add(DocAnnotation
                     {
                         Name(["Column"]);
                         {
                             NamedParameter("type", AnnotationValue(PHPString(columnType))),
-                            field.unique || typ.name == "UniqueId" then NamedParameter("unique", AnnotationValue(phpTrue))
+                            field.unique || nullableEquality(typ?.name, "UniqueId") then NamedParameter("unique", AnnotationValue(phpTrue))
                         }.coalesced;
                     });
+
+        if (exists typ)
+        {
+            if (exists columnType = columnTypeName.get(typ.name))
+            {
+                addSimpleColumnAnnotation(typ, columnType);
+            }
+            else
+            {
+                annotations.addAll
+                {
+                    DocAnnotation
+                    {
+                        Name(["OneToOne"]);
+                        NamedParameter("targetEntity", AnnotationValue(PHPString(typ.name)))
+                    }
+                };
+            }
+        }
+        else
+        {
+            assert (exists columnType = columnTypeName.get("String"));
+            addSimpleColumnAnnotation(null, columnType);
         }
     }
 
