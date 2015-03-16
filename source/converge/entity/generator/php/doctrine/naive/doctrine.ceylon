@@ -93,7 +93,6 @@ Map<String, String> columnTypeName = HashMap
     else
     {
         // TODO: This also specs multi-types as String. Intended behavior?
-        // TODO: Custom types as relationships
 
         function addSimpleColumnAnnotation(SingleTypeSpec? typ, String columnType)
                 => annotations.add(DocAnnotation
