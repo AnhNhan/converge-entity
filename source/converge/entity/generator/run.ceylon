@@ -103,7 +103,6 @@ shared void run() {
         ;
         value endConversion = system.nanoseconds;
 
-        print(typeSpecMap);
         print("\n\n".join(converted));
         print("\nTook (read + parse) ``(endParse - startParse) / 1_000 / 1_000.0``ms");
         print("\nTook (convert + render) ``(endConversion - startConversion) / 1_000 / 1_000.0``ms");
