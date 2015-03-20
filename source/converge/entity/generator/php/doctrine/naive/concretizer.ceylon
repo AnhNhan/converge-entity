@@ -36,6 +36,7 @@ import de.anhnhan.utils {
     assertHasAssertionError
 }
 
+// TODO: Resolve template parameters
 Struct concretizeStruct(
     Struct struct,
     Struct? getParents(SingleTypeSpec typeSpec),

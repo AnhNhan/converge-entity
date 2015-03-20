@@ -253,6 +253,7 @@ Class convertToClass(Struct struct, Struct? getParents(SingleTypeSpec typeSpec),
                             _final, public
                         };
 
+                // TODO: Inflect methods to be singular
                 return {
                     Property
                     {
