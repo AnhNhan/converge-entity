@@ -52,7 +52,7 @@ interface Field
 }
 
 shared
-Field field(String fieldName, TypeSpec? fieldType, Expression? fieldDefaultValue, AnnotationUse[] fieldAnnotations, Set<StructModifier>? fieldModifiers = null)
+Field field(String fieldName, TypeSpec? fieldType = null, Expression? fieldDefaultValue = null, AnnotationUse[] fieldAnnotations = [], Set<StructModifier>? fieldModifiers = null)
 {
     object field
             satisfies Field

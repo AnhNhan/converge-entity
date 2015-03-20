@@ -56,7 +56,7 @@ interface Struct
 }
 
 shared
-Struct struct(String structName, Set<StructModifier> structModifiers, SingleTypeSpec? concretizes, DeclarationParameter[] templateParameters, <Field|FunctionCall>[] structMembers, AnnotationUse[] structAnnotations)
+Struct struct(String structName, Set<StructModifier> structModifiers = emptySet, SingleTypeSpec? concretizes = null, DeclarationParameter[] templateParameters = [], <Field|FunctionCall>[] structMembers = [], AnnotationUse[] structAnnotations = [])
 {
     object struct
             satisfies Struct
