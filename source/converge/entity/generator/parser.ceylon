@@ -106,10 +106,11 @@ import de.anhnhan.utils {
     pipe2
 }
 
-StringParser<Struct|Alias> pTop
+StringParser<Struct|Alias|FunctionCall> pTop
         = anyOf(
             pStruct,
-            pAlias
+            pAlias,
+            pFunctionCall
         );
 
 StringParser typeSpecGenericStart = literal('<');
