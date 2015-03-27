@@ -48,6 +48,7 @@ Map<String, String> columnTypeName = HashMap
     value annotations = LinkedList<DocAnnotation>();
 
     value typ = field.type?.unnullified;
+    Boolean nullable = !(field.type is SingleTypeSpec) && (field.type?.isTypeOrNull(typ?.name else "") else false);
 
     if (annotationUse("id") in field.annotations)
     {
@@ -99,7 +100,8 @@ Map<String, String> columnTypeName = HashMap
                         Name(["Column"]);
                         {
                             NamedParameter("type", AnnotationValue(PHPString(columnType))),
-                            field.unique || nullableEquality(typ?.name, "UniqueId") then NamedParameter("unique", AnnotationValue(phpTrue))
+                            field.unique || nullableEquality(typ?.name, "UniqueId") then NamedParameter("unique", AnnotationValue(phpTrue)),
+                            nullable then NamedParameter("nullable", AnnotationValue(phpTrue))
                         }.coalesced;
                     });
 
