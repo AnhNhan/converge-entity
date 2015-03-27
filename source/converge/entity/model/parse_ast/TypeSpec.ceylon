@@ -208,3 +208,7 @@ SingleTypeSpec singleTypeSpec(String typeName, Expression[] typeParameters = [],
 shared
 SingleTypeSpec parameterlessSingleTypeSpec(SingleTypeSpec typeSpec)
         => singleTypeSpec(typeSpec.name, [], typeSpec.inPackage);
+
+shared
+SingleTypeSpec repackageSingleTypeSpec(SingleTypeSpec typeSpec, PackageStmt pakage = noPackage, Boolean clearParams = false)
+        => singleTypeSpec(typeSpec.name, clearParams then [] else typeSpec.parameters, pakage);
