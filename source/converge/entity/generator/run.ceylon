@@ -18,7 +18,8 @@ import ceylon.file {
 }
 
 import converge.entity.generator.php.doctrine.naive {
-    convertStruct
+    convertStruct,
+    executeFunction
 }
 import converge.entity.model.parse_ast {
     Struct,
@@ -41,6 +42,11 @@ import de.anhnhan.parser.parsec.string {
     StringParser,
     keyword
 }
+import de.anhnhan.php.ast {
+    Namespace,
+    Class,
+    Name
+}
 import de.anhnhan.php.render {
     render
 }
@@ -48,7 +54,8 @@ import de.anhnhan.utils {
     falsy,
     acceptEntry,
     pipe2,
-    pickOfType
+    pickOfType,
+    cast
 }
 
 "Run the module `converge.entity.generator`."
@@ -90,16 +97,40 @@ shared void run() {
 
         value startConversion = system.nanoseconds;
         // TODO: At some point include Aliases
+        value structs = processed.flatMap(
+            acceptEntry((PackageStmt containedPackage, [<Struct|Alias|FunctionCall>+] stuff)
+                => pickOfType<Struct>(stuff).map((struct) => singleTypeSpec(struct.name, [], containedPackage)->struct)
+            )
+        );
+        value functionCallResults = processed.flatMap(
+            acceptEntry((PackageStmt pakage, [<Struct|Alias|FunctionCall>+] stuff)
+                => pickOfType<FunctionCall>(stuff)
+                    .flatMap((funCall) => executeFunction(funCall.name, funCall.arguments, HashMap { entries = structs; }.get, pakage))
+                    .map((obj) => singleTypeSpec(cast<Struct>(obj)?.name else "was-a-class", [], pakage)->obj)
+        ));
+        value functionCallResultStructs = {for (entry in functionCallResults) if (is Struct struct = entry.item) entry.key->struct};
         value typeSpecMap = HashMap
         {
-            entries = processed.flatMap(
-                acceptEntry((PackageStmt containedPackage, [<Struct|Alias|FunctionCall>+] stuff)
-                    => pickOfType<Struct>(stuff).map((struct) => singleTypeSpec(struct.name, [], containedPackage)->struct)
-                )
-            );
+            entries = structs.chain(functionCallResultStructs);
         };
-        value converted = {for (pakage in processed) for (item in pakage.item) if (is Struct item) pakage.key->item}
-                .map((entry) => convertStruct(entry.item, typeSpecMap.get, entry.key))
+        function toNamespace(PackageStmt pakage, Class klass)
+        {
+            value parts = pakage.nameParts;
+            [String+] name;
+            if (nonempty parts)
+            {
+                name = parts;
+            }
+            else
+            {
+                name = [""];
+            }
+
+            return Namespace(Name(name), {klass});
+        }
+        value converted = structs.chain(functionCallResultStructs)
+                .map((entry) => convertStruct(entry.item, typeSpecMap.get, entry.key.inPackage))
+                .chain { for (entry in functionCallResults) if (is Class klass = entry.item) toNamespace(entry.key.inPackage, klass)}
                 .collect(render)
         ;
         value endConversion = system.nanoseconds;
