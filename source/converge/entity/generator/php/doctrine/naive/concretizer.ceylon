@@ -27,7 +27,8 @@ import converge.entity.model.parse_ast {
     noPackage,
     PackageStmt,
     FunctionCall,
-    annotationUse
+    annotationUse,
+    Expression
 }
 
 import de.anhnhan.utils {
@@ -41,6 +42,7 @@ Struct concretizeStruct(
     Struct struct,
     Struct? getParents(SingleTypeSpec typeSpec),
     PackageStmt currentPackage = noPackage,
+    Expression[] parameters = [],
     String[] concretizationHierarchy = []
 )
 {
@@ -72,7 +74,7 @@ Struct concretizeStruct(
             throw ConcretizationCycle(struct, concretizationHierarchy);
         }
 
-        value concretizedParent = concretizeStruct(parent, getParents, parentSpec.inPackage, concretizationHierarchy.append([struct.name]));
+        value concretizedParent = concretizeStruct(parent, getParents, parentSpec.inPackage, parentSpec.parameters, concretizationHierarchy.append([struct.name]));
         if (!concretizedParent.abstract)
         {
             throw Exception("Struct ``struct.name`` concretizes struct ``concretizedParent.name``, which is not abstract.");
