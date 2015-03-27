@@ -6,6 +6,11 @@
     Software provided as-is, no warranty
  */
 
+import de.anhnhan.utils {
+    pickOfType,
+    pipe2
+}
+
 shared
 interface StructModifier
         of abstractStruct
@@ -42,6 +47,16 @@ interface Struct
 
     shared
     Boolean abstract => abstractStruct in modifiers;
+
+    shared
+    {Field*} fields => pickOfType<Field>(members);
+
+    shared
+    Field? field(String name)
+            => fields.find(pipe2(Field.name, name.equals));
+
+    shared
+    {FunctionCall*} functionCalls => pickOfType<FunctionCall>(members);
 
     string => "Struct ``name`` concretizes ``concretizing else "none"``
                {
