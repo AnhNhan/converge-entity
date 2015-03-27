@@ -28,3 +28,8 @@ import converge.entity.model.parse_ast {
         return null;
     }
 }
+
+// TODO: Irregular plural forms
+// Consider porting Doctrine/Inflector instead?
+String depluralize(String input)
+        => String(input.exceptLast.chain({input.last}.coalesced.filter(not('s'.equals))));
