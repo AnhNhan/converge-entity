@@ -40,7 +40,8 @@ Map<String, String> columnTypeName = HashMap
     "Float"->"float",
     "Text"->"text",
     "ExternalReference"->"string", // We save the UID
-    "UniqueId"->"string"
+    "UniqueId"->"string",
+    "Map"->"json_object_array"
 };
 
 {DocAnnotation*} doctrineAnnotations(Field field)
