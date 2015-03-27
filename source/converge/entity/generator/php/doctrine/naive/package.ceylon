@@ -6,4 +6,4 @@
     Software provided as-is, no warranty
  */
 
-shared package converge.entity.generator.php.doctrine.naive;
+package converge.entity.generator.php.doctrine.naive;
