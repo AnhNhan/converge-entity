@@ -66,13 +66,7 @@ Struct concretizeStruct(
             throw Exception("Struct ``struct.name`` (package ``currentPackage.nameParts``) concretizes struct ``parentSpec.name``, which does not exist.");
         }
 
-        // Prevent inheritance cycles, which will cause an infinite loop
-        // O(n) space, O(n²) time. Well, n is usually small enough (does anybody get over 5 in userland projects?)
-        if (parent.name in concretizationHierarchy)
-        {
-            assert (nonempty concretizationHierarchy);
-            throw ConcretizationCycle(struct, concretizationHierarchy);
-        }
+        checkForInheritanceCycles(parent, concretizationHierarchy);
 
         value concretizedParent = concretizeStruct(parent, getParents, parentSpec.inPackage, parentSpec.parameters, concretizationHierarchy.append([struct.name]));
         if (!concretizedParent.abstract)
@@ -105,7 +99,37 @@ Struct concretizeStruct(
         );
         appended_members.addAll(inherited_funcalls);
 
-        inherited_fields
+        checkAndFilterInheritedFields(inherited_fields, member_names, struct, parent)
+                .collect(members.add);
+    }
+
+    members.addAll(original_members);
+    members.addAll(appended_members);
+
+    return createStruct
+    {
+        struct.name;
+        struct.modifiers;
+        struct.concretizing;
+        struct.parameters;
+        members.sequence();
+        struct.annotations;
+    };
+}
+
+"Prevent inheritance cycles, which would cause an infinite loop."
+throws(`class ConcretizationCycle`, "when an inheritance cycle is encountered.")
+void checkForInheritanceCycles(Struct parent, String[] inheritanceHierarchy)
+{
+    if (parent.name in inheritanceHierarchy)
+    {
+        assert (nonempty inheritanceHierarchy);
+        throw ConcretizationCycle(parent, inheritanceHierarchy);
+    }
+}
+
+{Field*} checkAndFilterInheritedFields({Field*} inherited_fields, Category<String> member_names, Struct struct, Struct parent)
+        => inherited_fields
                 .filter(not(Field.appended))
                 // The .map operation is a simple check whether everything has been implemented
                 // It simply checks whether an implementation exists, it does not
@@ -122,23 +146,7 @@ Struct concretizeStruct(
                         return field;
                     })
                 .filter(pipe2(Field.name, not(member_names.contains)))
-                .collect(members.add)
         ;
-    }
-
-    members.addAll(original_members);
-    members.addAll(appended_members);
-
-    return createStruct
-    {
-        struct.name;
-        struct.modifiers;
-        struct.concretizing;
-        struct.parameters;
-        members.sequence();
-        struct.annotations;
-    };
-}
 
 shared
 class ConcretizationCycle(
