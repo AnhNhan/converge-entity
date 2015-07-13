@@ -1,0 +1,17 @@
+{
+    "folders": [
+        {
+            "path": "source",
+            "name": "converge-entity Source"
+        },
+        {
+            "folder_exclude_patterns":
+            [
+                "converge-entity/source"
+            ],
+            "follow_symlinks": true,
+            "name": "converge-entity Root",
+            "path": "."
+        }
+    ]
+}
