@@ -1,0 +1,3433 @@
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class Discussion implements \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $label;
+        final public function label() {
+            return $this->label;
+        }
+        
+        final public function setLabel($label) {
+            $this->label = $label;
+            return $this;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $author;
+        final public function author() {
+            return $this->author;
+        }
+        
+        /**
+         * @Column(type="text")
+         */
+        private $rawText;
+        final public function rawText() {
+            return $this->rawText;
+        }
+        
+        final public function setRawText($rawText) {
+            $this->rawText = $rawText;
+            return $this;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="ForumComment")
+         */
+        private $comments;
+        final public function comments() {
+            return $this->comments;
+        }
+        
+        final public function addComments($comments) {
+            $this->comments->add($comments);
+            return $this;
+        }
+        
+        final public function removeComments($comments) {
+            $this->comments->remove($comments);
+            return $this;
+        }
+        
+        final public function hasComments($comments) {
+            return $this->comments->has($comments);
+        }
+        
+        /**
+         * @OneToMany(targetEntity="Post")
+         */
+        private $posts;
+        final public function posts() {
+            return $this->posts;
+        }
+        
+        final public function addPosts($posts) {
+            $this->posts->add($posts);
+            return $this;
+        }
+        
+        final public function removePosts($posts) {
+            $this->posts->remove($posts);
+            return $this;
+        }
+        
+        final public function hasPosts($posts) {
+            return $this->posts->has($posts);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="ExternalCollection")
+         */
+        private $tags;
+        final public function tags() {
+            return $this->tags;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($author, $tags, \Doctrine\ORM\PersistentCollection $comments, \Doctrine\ORM\PersistentCollection $posts, \Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->author = $author;
+            $this->tags = $tags;
+            $this->comments = $comments;
+            $this->posts = $posts;
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "DISQ";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class ForumComment implements \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $parent;
+        final public function parent() {
+            return $this->parent;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $author;
+        final public function author() {
+            return $this->author;
+        }
+        
+        /**
+         * @Column(type="text")
+         */
+        private $rawText;
+        final public function rawText() {
+            return $this->rawText;
+        }
+        
+        final public function setRawText($rawText) {
+            $this->rawText = $rawText;
+            return $this;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Boolean")
+         */
+        private $deleted = false;
+        final public function deleted() {
+            return $this->deleted;
+        }
+        
+        final public function setDeleted($deleted) {
+            $this->deleted = $deleted;
+            return $this;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($parent, $author, \Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->parent = $parent;
+            $this->author = $author;
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "FORUM";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class Post implements \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Discussion")
+         */
+        private $discussion;
+        final public function discussion() {
+            return $this->discussion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $author;
+        final public function author() {
+            return $this->author;
+        }
+        
+        /**
+         * @Column(type="text")
+         */
+        private $rawText;
+        final public function rawText() {
+            return $this->rawText;
+        }
+        
+        final public function setRawText($rawText) {
+            $this->rawText = $rawText;
+            return $this;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Boolean")
+         */
+        private $deleted = false;
+        final public function deleted() {
+            return $this->deleted;
+        }
+        
+        final public function setDeleted($deleted) {
+            $this->deleted = $deleted;
+            return $this;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="ForumComment")
+         */
+        private $comments;
+        final public function comments() {
+            return $this->comments;
+        }
+        
+        final public function addComments($comments) {
+            $this->comments->add($comments);
+            return $this;
+        }
+        
+        final public function removeComments($comments) {
+            $this->comments->remove($comments);
+            return $this;
+        }
+        
+        final public function hasComments($comments) {
+            return $this->comments->has($comments);
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($discussion, $author, \Doctrine\ORM\PersistentCollection $comments, \Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->discussion = $discussion;
+            $this->author = $author;
+            $this->comments = $comments;
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "POST";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class Email implements \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $email;
+        final public function email() {
+            return $this->email;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="User")
+         */
+        private $user;
+        final public function user() {
+            return $this->user;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Boolean")
+         */
+        private $is_verified = false;
+        final public function is_verified() {
+            return $this->is_verified;
+        }
+        
+        final public function setIs_verified($is_verified) {
+            $this->is_verified = $is_verified;
+            return $this;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Boolean")
+         */
+        private $is_primary = false;
+        final public function is_primary() {
+            return $this->is_primary;
+        }
+        
+        final public function setIs_primary($is_primary) {
+            $this->is_primary = $is_primary;
+            return $this;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($email, $user, \Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->email = $email;
+            $this->user = $user;
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "EMAIL_ADDR";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class Role implements \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $name;
+        final public function name() {
+            return $this->name;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $label;
+        final public function label() {
+            return $this->label;
+        }
+        
+        final public function setLabel($label) {
+            $this->label = $label;
+            return $this;
+        }
+        
+        /**
+         * @Column(type="text", nullable=true)
+         */
+        private $description = null;
+        final public function description() {
+            return $this->description;
+        }
+        
+        final public function setDescription($description) {
+            $this->description = $description;
+            return $this;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($name, \Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->name = $name;
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "ROLE";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class User implements \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $username;
+        final public function username() {
+            return $this->username;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $username_canon;
+        final public function username_canon() {
+            return $this->username_canon;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="UserCredentialSet")
+         */
+        private $credentials;
+        final public function credentials() {
+            return $this->credentials;
+        }
+        
+        final public function addCredentials($credentials) {
+            $this->credentials->add($credentials);
+            return $this;
+        }
+        
+        final public function removeCredentials($credentials) {
+            $this->credentials->remove($credentials);
+            return $this;
+        }
+        
+        final public function hasCredentials($credentials) {
+            return $this->credentials->has($credentials);
+        }
+        
+        /**
+         * @OneToMany(targetEntity="Role")
+         */
+        private $roles;
+        final public function roles() {
+            return $this->roles;
+        }
+        
+        final public function addRoles($roles) {
+            $this->roles->add($roles);
+            return $this;
+        }
+        
+        final public function removeRoles($roles) {
+            $this->roles->remove($roles);
+            return $this;
+        }
+        
+        final public function hasRoles($roles) {
+            return $this->roles->has($roles);
+        }
+        
+        /**
+         * @OneToMany(targetEntity="Email")
+         */
+        private $emails;
+        final public function emails() {
+            return $this->emails;
+        }
+        
+        final public function addEmails($emails) {
+            $this->emails->add($emails);
+            return $this;
+        }
+        
+        final public function removeEmails($emails) {
+            $this->emails->remove($emails);
+            return $this;
+        }
+        
+        final public function hasEmails($emails) {
+            return $this->emails->has($emails);
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($username, $username_canon, \Doctrine\ORM\PersistentCollection $credentials, \Doctrine\ORM\PersistentCollection $roles, \Doctrine\ORM\PersistentCollection $emails, \Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->username = $username;
+            $this->username_canon = $username_canon;
+            $this->credentials = $credentials;
+            $this->roles = $roles;
+            $this->emails = $emails;
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "USER";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class UserCredentialPassword implements \AnhNhan\Converge\Modules\People\Storage\UserCredentialSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="User")
+         */
+        private $user;
+        final public function user() {
+            return $this->user;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $password;
+        final public function password() {
+            return $this->password;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $salt;
+        final public function salt() {
+            return $this->salt;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $algorithm;
+        final public function algorithm() {
+            return $this->algorithm;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($user, $password, $salt, $algorithm, \Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->user = $user;
+            $this->password = $password;
+            $this->salt = $salt;
+            $this->algorithm = $algorithm;
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "USER_CRED";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    interface UserCredentialSet extends \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        public function uid();
+        public function user();
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class VerificationCode implements \AnhNhan\Converge\Storage\Entity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $code;
+        final public function code() {
+            return $this->code;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Boolean")
+         */
+        private $used = false;
+        final public function used() {
+            return $this->used;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $expires;
+        final public function expires() {
+            return $this->expires;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $purpose;
+        final public function purpose() {
+            return $this->purpose;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="User")
+         */
+        private $user;
+        final public function user() {
+            return $this->user;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($code, $used, $expires, $type, $purpose, $user) {
+            $this->code = $code;
+            $this->used = $used;
+            $this->expires = $expires;
+            $this->type = $type;
+            $this->purpose = $purpose;
+            $this->user = $user;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "VERIC";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Tag\Storage
+{
+    class Tag implements \AnhNhan\Converge\Storage\TransactionAwareEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $label;
+        final public function label() {
+            return $this->label;
+        }
+        
+        final public function setLabel($label) {
+            $this->label = $label;
+            return $this;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $displayOrder = 0;
+        final public function displayOrder() {
+            return $this->displayOrder;
+        }
+        
+        final public function setDisplayOrder($displayOrder) {
+            $this->displayOrder = $displayOrder;
+            return $this;
+        }
+        
+        /**
+         * @Column(type="string", nullable=true)
+         */
+        private $color = null;
+        final public function color() {
+            return $this->color;
+        }
+        
+        final public function setColor($color) {
+            $this->color = $color;
+            return $this;
+        }
+        
+        /**
+         * @Column(type="text", nullable=true)
+         */
+        private $description = null;
+        final public function description() {
+            return $this->description;
+        }
+        
+        final public function setDescription($description) {
+            $this->description = $description;
+            return $this;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TransactionSet")
+         */
+        private $transactionSets;
+        final public function transactionSets() {
+            return $this->transactionSets;
+        }
+        
+        final public function addTransactionSets($transactionSets) {
+            $this->transactionSets->add($transactionSets);
+            return $this;
+        }
+        
+        final public function removeTransactionSets($transactionSets) {
+            $this->transactionSets->remove($transactionSets);
+            return $this;
+        }
+        
+        final public function hasTransactionSets($transactionSets) {
+            return $this->transactionSets->has($transactionSets);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TransactionSet")
+         */
+        private $currentTransactionSet;
+        final public function currentTransactionSet() {
+            return $this->currentTransactionSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct(\Doctrine\ORM\PersistentCollection $transactionSets) {
+            $this->transactionSets = $transactionSets;
+            $this->currentTransactionSet = null;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "TAG";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Storage
+{
+    interface Entity {
+        public function id();
+        public function createdAt();
+        public function modifiedAt();
+    }
+}
+
+namespace AnhNhan\Converge\Storage
+{
+    interface TransactionAwareEntity extends Entity {
+        public function uid();
+        public function transactionSets();
+        public function currentTransactionSet();
+    }
+}
+
+namespace AnhNhan\Converge\Storage
+{
+    interface TransactionEntity extends Entity {
+        public function uid();
+        public function actor();
+        public function object();
+        public function type();
+        public function oldValue();
+        public function newValue();
+        public function metadata();
+    }
+}
+
+namespace AnhNhan\Converge\Storage
+{
+    interface TransactionSet extends Entity {
+        public function uid();
+        public function subject();
+        public function actor();
+        public function transactions();
+        public function previousSet();
+        public function previousVersion();
+        public function nextVersion();
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class DiscussionTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Discussion")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="DiscussionTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="DiscussionTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class ForumCommentTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="ForumComment")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="ForumCommentTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="ForumCommentTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class PostTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Post")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="PostTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="PostTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class EmailTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Email")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="EmailTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="EmailTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class RoleTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Role")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="RoleTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="RoleTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class UserTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="User")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="UserTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="UserTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class UserCredentialPasswordTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="UserCredentialPassword")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="UserCredentialPasswordTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="UserCredentialPasswordTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class VerificationCodeTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="VerificationCode")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="VerificationCodeTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="VerificationCodeTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Tag\Storage
+{
+    class TagTransactionSet implements \AnhNhan\Converge\Storage\TransactionSet {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="integer", nullable=true)
+         */
+        private $previousVersion = null;
+        final public function previousVersion() {
+            return $this->previousVersion;
+        }
+        
+        /**
+         * @Column(type="integer")
+         */
+        private $nextVersion;
+        final public function nextVersion() {
+            return $this->nextVersion;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Tag")
+         */
+        private $subject;
+        final public function subject() {
+            return $this->subject;
+        }
+        
+        /**
+         * @OneToMany(targetEntity="TagTransactionValue")
+         */
+        private $transactions;
+        final public function transactions() {
+            return $this->transactions;
+        }
+        
+        final public function addTransactions($transactions) {
+            $this->transactions->add($transactions);
+            return $this;
+        }
+        
+        final public function removeTransactions($transactions) {
+            $this->transactions->remove($transactions);
+            return $this;
+        }
+        
+        final public function hasTransactions($transactions) {
+            return $this->transactions->has($transactions);
+        }
+        
+        /**
+         * @OneToOne(targetEntity="TagTransactionSet")
+         */
+        private $previousSet;
+        final public function previousSet() {
+            return $this->previousSet;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $previousVersion, $nextVersion, $subject, $previousSet, \Doctrine\ORM\PersistentCollection $transactions) {
+            $this->actor = $actor;
+            $this->previousVersion = $previousVersion;
+            $this->nextVersion = $nextVersion;
+            $this->subject = $subject;
+            $this->previousSet = $previousSet;
+            $this->transactions = $transactions;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XSET";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class DiscussionTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Discussion")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+         const DISCUSSION_CHANGE_LABEL = "discussion.change.label";
+         const DISCUSSION_CHANGE_RAWTEXT = "discussion.change.rawtext";
+         const DISCUSSION_ADD_COMMENTS = "discussion.add.comments";
+         const DISCUSSION_DEL_COMMENTS = "discussion.del.comments";
+         const DISCUSSION_ADD_POSTS = "discussion.add.posts";
+         const DISCUSSION_DEL_POSTS = "discussion.del.posts";
+         const DISCUSSION_ADD_TAGS = "discussion.add.tags";
+         const DISCUSSION_DEL_TAGS = "discussion.del.tags";
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class ForumCommentTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="ForumComment")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+         const FORUMCOMMENT_CHANGE_RAWTEXT = "forumcomment.change.rawtext";
+         const FORUMCOMMENT_CHANGE_DELETED = "forumcomment.change.deleted";
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Forum\Storage
+{
+    class PostTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Post")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+         const POST_CHANGE_RAWTEXT = "post.change.rawtext";
+         const POST_CHANGE_DELETED = "post.change.deleted";
+         const POST_ADD_COMMENTS = "post.add.comments";
+         const POST_DEL_COMMENTS = "post.del.comments";
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class EmailTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Email")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+         const EMAIL_CHANGE_IS_VERIFIED = "email.change.is_verified";
+         const EMAIL_CHANGE_IS_PRIMARY = "email.change.is_primary";
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class RoleTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Role")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+         const ROLE_CHANGE_LABEL = "role.change.label";
+         const ROLE_CHANGE_DESCRIPTION = "role.change.description";
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class UserTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="User")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+         const USER_ADD_CREDENTIALS = "user.add.credentials";
+         const USER_DEL_CREDENTIALS = "user.del.credentials";
+         const USER_ADD_ROLES = "user.add.roles";
+         const USER_DEL_ROLES = "user.del.roles";
+         const USER_ADD_EMAILS = "user.add.emails";
+         const USER_DEL_EMAILS = "user.del.emails";
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class UserCredentialPasswordTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="UserCredentialPassword")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\People\Storage
+{
+    class VerificationCodeTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="VerificationCode")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+    }
+}
+
+namespace AnhNhan\Converge\Modules\Tag\Storage
+{
+    class TagTransactionValue implements \AnhNhan\Converge\Storage\TransactionEntity {
+        /**
+         * @Id
+         * @Column(type="integer")
+         * @GeneratedValue(strategy="AUTO")
+         */
+        private $id;
+        final public function id() {
+            return $this->id;
+        }
+        
+        /**
+         * @Column(type="string", unique=true)
+         */
+        private $uid;
+        final public function uid() {
+            return $this->uid;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Actor")
+         */
+        private $actor;
+        final public function actor() {
+            return $this->actor;
+        }
+        
+        /**
+         * @Column(type="string")
+         */
+        private $type;
+        final public function type() {
+            return $this->type;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $oldValue;
+        final public function oldValue() {
+            return $this->oldValue;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Value")
+         */
+        private $newValue;
+        final public function newValue() {
+            return $this->newValue;
+        }
+        
+        /**
+         * @Column(type="json_object_array")
+         */
+        private $metadata;
+        final public function metadata() {
+            return $this->metadata;
+        }
+        
+        /**
+         * @OneToOne(targetEntity="Tag")
+         */
+        private $object;
+        final public function object() {
+            return $this->object;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $createdAt;
+        final public function createdAt() {
+            return $this->createdAt;
+        }
+        
+        /**
+         * @Column(type="datetime")
+         */
+        private $modifiedAt;
+        final public function modifiedAt() {
+            return $this->modifiedAt;
+        }
+        
+        public function update() {
+            $this->modifiedAt = new \DateTime;
+            parent::update();
+        }
+        
+        public function __construct($actor, $type, $oldValue, $newValue, $metadata, $object) {
+            $this->actor = $actor;
+            $this->type = $type;
+            $this->oldValue = $oldValue;
+            $this->newValue = $newValue;
+            $this->metadata = $metadata;
+            $this->object = $object;
+            $this->createdAt = new \DateTime;
+            $this->modifiedAt = new \DateTime;
+        }
+        
+        final public function uidType() {
+            return "XACT";
+        }
+        
+        use \AnhNhan\Converge\Infrastructure\MagicGetter;
+         const TAG_CHANGE_LABEL = "tag.change.label";
+         const TAG_CHANGE_DISPLAYORDER = "tag.change.displayorder";
+         const TAG_CHANGE_COLOR = "tag.change.color";
+         const TAG_CHANGE_DESCRIPTION = "tag.change.description";
+    }
+}
+
+Took (read + parse) 5985.851ms
+
+Took (convert + render) 1013.396ms
+
+Took (total) 7010.454ms
