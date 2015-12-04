@@ -6,6 +6,7 @@
     Software provided as-is, no warranty
  */
 
+native("jvm") 
 module converge.entity.generator "dev"
 {
     shared
@@ -15,9 +16,9 @@ module converge.entity.generator "dev"
     import converge.entity.model "dev";
     import de.anhnhan.parser "dev";
 
-    import ceylon.collection "1.1.0";
-    import ceylon.file "1.1.0";
+    import ceylon.collection "1.2.0";
+    import ceylon.file "1.2.0";
 
     optional
-    import ceylon.test "1.1.0";
+    import ceylon.test "1.2.0";
 }

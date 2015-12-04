@@ -113,19 +113,19 @@ StringParser<Struct|Alias|FunctionCall> pTop
             pFunctionCall
         );
 
-StringParser typeSpecGenericStart = literal('<');
-StringParser typeSpecGenericEnd = literal('>');
+StringParser<Character> typeSpecGenericStart = literal('<');
+StringParser<Character> typeSpecGenericEnd = literal('>');
 
-StringParser funcCallStart = literal('(');
-StringParser funcCallEnd = literal(')');
+StringParser<Character> funcCallStart = literal('(');
+StringParser<Character> funcCallEnd = literal(')');
 
-StringParser lexScopeStart = literal('{');
-StringParser lexScopeEnd = literal('}');
+StringParser<Character> lexScopeStart = literal('{');
+StringParser<Character> lexScopeEnd = literal('}');
 
-StringParser packageNamePartSeparator = literal('.');
-StringParser typeUnionSeparator = literal('|');
+StringParser<Character> packageNamePartSeparator = literal('.');
+StringParser<Character> typeUnionSeparator = literal('|');
 
-StringParser annotationMarker = literal('#');
+StringParser<Character> annotationMarker = literal('#');
 
 StringParser<Character[]> abstractKeyword = keyword("abstract");
 StringParser<Character[]> uniqueKeyword = keyword("unique");
@@ -142,7 +142,7 @@ StringParser<Literal> despace<Literal>(StringParser<Literal> parser)
         => ignoreSurrounding<Literal, Character>(zeroOrMore(anyOf(pComment, whitespace)))(parser);
 
 Boolean(Character) identCharPredicate = _or(_or(Character.letter, Character.digit), (Character _) => _ in "_-$");
-StringParser identChar = satisfy(identCharPredicate);
+StringParser<Character> identChar = satisfy(identCharPredicate);
 StringParser<String> identStr
         = one_or_more_chars(identChar);
 
@@ -215,14 +215,12 @@ StringParseResult<Alias> pAlias({Character*} input)
     {
         return aliasKeyword.toJustError;
     }
-    assert (is Ok<Anything, Character> aliasKeyword);
 
     value ident = despace(uIdent)(aliasKeyword.rest);
     if (is Error<Anything, Character> ident)
     {
         return ident.toJustError.appendMessage("Expected: alias type identifier");
     }
-    assert (is Ok<[Character+], Character> ident);
     value aliasName = String(ident.result);
 
     value aliasArrow = despace(literals("=>"))(ident.rest);
@@ -236,7 +234,6 @@ StringParseResult<Alias> pAlias({Character*} input)
     {
         return aliasTypes.toJustError.appendMessage("Invalid TypeSpec");
     }
-    assert (is Ok<[SingleTypeSpec+], Character> aliasTypes);
 
     return ok(typeAlias(aliasName, aliasTypes.result), aliasTypes.rest);
 }
@@ -474,11 +471,7 @@ StringParser<AnnotationUse> pAnnotationUse
                 {
                     return annotationUse(element.name, element.arguments);
                 }
-                else if (is [Character+] element)
-                {
-                    return annotationUse(String(element));
-                }
-                assert (false);
+                return annotationUse(String(element));
             }));
 
 StringParseResult<Expression[]> optTypeParameters({Character*} input)

@@ -11,8 +11,7 @@ import ceylon.collection {
 }
 
 import converge.entity.model.parse_ast {
-    Field,
-    SingleTypeSpec
+    Field
 }
 
 import de.anhnhan.php.ast {
@@ -35,7 +34,6 @@ PHPExpression autoInitValueFor(Field field)
     {
         throw Exception("Field ``field.name`` requires a type for auto init behavior (you don't want an empty string, no?)");
     }
-    assert (is SingleTypeSpec type);
     value val = autoInitValue[type.name];
     if (exists val)
     {

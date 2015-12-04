@@ -36,10 +36,11 @@ import de.anhnhan.parser.parsec {
     parseMultipleCompletelyUsing,
     right,
     requireSuccess,
-    requireSuccessP
+    requireSuccessP,
+	Parser
 }
 import de.anhnhan.parser.parsec.string {
-    StringParser,
+    
     keyword
 }
 import de.anhnhan.php.ast {
@@ -157,7 +158,7 @@ shared void run() {
     }
 }
 
-StringParser<[<Struct|Alias|FunctionCall>+]> parse = parseMultipleCompletelyUsing(despace(pTop));
+Parser<[<Struct|Alias|FunctionCall>+], Character> parse = parseMultipleCompletelyUsing(despace(pTop));
 
 {<Path->String>*} scanDir(String|Directory path)
 {

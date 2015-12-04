@@ -13,5 +13,5 @@ module converge.entity.model "dev"
     import de.anhnhan.utils "0.1";
 
     optional
-    import ceylon.test "1.1.0";
+    import ceylon.test "1.2.0";
 }

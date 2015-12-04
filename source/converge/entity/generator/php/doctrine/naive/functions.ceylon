@@ -68,8 +68,6 @@ shared
     {
         throw Exception("Function ``functionName`` does not exist. Note that function names are case-sensitive.");
     }
-    "Waiting for 1.2"
-    assert (exists selectedFunction);
 
     // FIXME: Hard-coded for type-spec params. Once we introduce other functions, we should change this.
 
