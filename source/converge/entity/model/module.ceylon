@@ -6,6 +6,7 @@
     Software provided as-is, no warranty
  */
 
+native("jvm")
 module converge.entity.model "dev"
 {
     shared
