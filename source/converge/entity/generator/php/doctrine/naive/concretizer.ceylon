@@ -28,7 +28,17 @@ import converge.entity.model.parse_ast {
     PackageStmt,
     FunctionCall,
     annotationUse,
-    Expression
+    Expression,
+    integerLiteral,
+    packageStmt,
+    stringLiteral,
+    valueSymbol,
+    SymbolName,
+    Literal,
+    MultiTypeSpec,
+    multiTypeSpec,
+    TypeSpec,
+    AnnotationUse
 }
 
 import de.anhnhan.utils {
@@ -158,9 +168,142 @@ class ConcretizationCycle(
         extends Exception("Struct ``struct.name`` concretizes struct ``struct.concretizing?.name else nothing``, which created a cyclic hierarchy. (``hierarchy``)")
 {}
 
+Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String, Expression> parameters)
+{
+    if (parameters.empty)
+    {
+        // No parameters to replace
+        return input;
+    }
+    print("grdhhseigfsesdfeshig");
+
+    switch (input)
+    case (is Field)
+    {
+        value type = resolveParameter("", input.type, parameters);
+
+        value original_default_expression = input.defaultValue;
+        Expression? default_value;
+        switch (original_default_expression)
+        case (is FunctionCall)
+        {
+            assert (is FunctionCall resolved_function_call = resolveParameterSymbols(original_default_expression, parameters));
+            default_value = resolved_function_call;
+        }
+        case (is TypeSpec)
+        {
+            default_value = resolveParameterSymbolsForTypeSpec(original_default_expression, parameters);
+        }
+        case (is SymbolName)
+        {
+            default_value = resolveParameter(original_default_expression.name, original_default_expression, parameters);
+        }
+        case (is Literal?)
+        {
+            default_value = original_default_expression;
+        }
+
+        // TODO: Process annotations
+        AnnotationUse[] annotations = input.annotations;
+
+        return field
+        {
+            fieldName = input.name;
+            fieldType = type;
+            fieldDefaultValue = default_value;
+            fieldAnnotations = annotations;
+            fieldModifiers = input.modifiers;
+        };
+    }
+    case (is FunctionCall)
+    {
+        return input;
+    }
+}
+
+TypeSpec? resolveParameterSymbolsForTypeSpec(TypeSpec typeSpec, Map<String, Expression> parameters)
+{
+    switch (typeSpec)
+    case (is MultiTypeSpec)
+    {
+        return multiTypeSpec(typeSpec.typeSpecs.collect(
+            (SingleTypeSpec typeSpec)
+            {
+                if (typeSpec.name in parameters, !typeSpec.parameters.empty)
+                {
+                    throw Exception("Multi-TypeSpec ``typeSpec`` had part ``typeSpec`` that is considered a template parameter, but is generic.");
+                }
+                return resolveParameter(typeSpec.name, typeSpec, parameters) else typeSpec;
+            }));
+        }
+        case (is SingleTypeSpec)
+        {
+            return resolveParameter(typeSpec.name, typeSpec, parameters);
+        }
+}
+
+/// Silly name
+Parameter? resolveParameter<Parameter>(String? name, Parameter original, Map<String, Expression> parameters)
+{
+    if (exists name, name in parameters)
+    {
+        value replacement_value = parameters[name];
+        if (is Parameter? replacement_value)
+        {
+            return replacement_value;
+        }
+        throw Exception();
+    }
+
+    return original;
+}
+
 // -----------------------------------------------------------------------------
 //                                  TESTS
 // -----------------------------------------------------------------------------
+
+test
+void resolve_template_expressions()
+{
+    value parameter_map_1 = HashMap
+    {
+        "num1"->integerLiteral(168),
+        "str1"->stringLiteral("some string"),
+        "name1"->stringLiteral("some_name"),
+        "SomeType"->singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"]))
+    };
+
+    value testCases = HashMap
+    {
+        field("num1", singleTypeSpec("SomeType"), valueSymbol("num1"), [], HashSet { abstractStruct })
+                ->field("num1", singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])), integerLiteral(168), [], HashSet { abstractStruct })
+    };
+
+    value errors = LinkedList<[Field|FunctionCall, Field|FunctionCall, Field|FunctionCall]>();
+    for (_in->_out in testCases)
+    {
+        value result = resolveParameterSymbols(_in, parameter_map_1);
+        if (!(result == _out))
+        {
+            errors.add([_in, _out, result]);
+        }
+    }
+
+    if (!errors.empty)
+    {
+        for (tup in errors)
+        {
+            value _in = tup[0];
+            value _out = tup[1];
+            value _result = tup[2];
+
+            print("Field {``_in``} was not handled correctly. Expected {``_out``} but got {``_result``}.");
+        }
+
+        "Some test cases were not handled correctly. Please read the test output to find out what went wrong."
+        assert (errors.empty);
+    }
+}
 
 Struct structA = createStruct(
     "A",
