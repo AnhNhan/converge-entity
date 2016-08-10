@@ -398,19 +398,10 @@ Class convertToClass(Struct struct, Struct? getParents(SingleTypeSpec typeSpec),
     if (exists fieldUid)
     {
         // TODO: Better error handling
-        // TODO: Sub-Uids
         assert (is SingleTypeSpec type = fieldUid.type);
         assert (type.name == "UniqueId");
         value params = type.parameters;
-        String uidType;
-        if (is StringLiteral firstParam = params.first)
-        {
-            uidType = firstParam.contents;
-        }
-        else
-        {
-            throw Exception("Field ``fieldUid`` does not correctly declare UniqueId!");
-        }
+        String uidType = "-".join(params.map((expr) => if (is StringLiteral expr) then expr.contents else "<invalid-param>"));
 
         methods = methods.chain
         {
