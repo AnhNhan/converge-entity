@@ -38,7 +38,8 @@ import converge.entity.model.parse_ast {
     MultiTypeSpec,
     multiTypeSpec,
     TypeSpec,
-    AnnotationUse
+    AnnotationUse,
+    functionCall
 }
 
 import de.anhnhan.utils {
@@ -176,31 +177,34 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
         return input;
     }
 
+    function resolveExpression<Expr, Absent = Null>(Expr|Absent expresssion)
+            given Expr satisfies Expression
+            given Absent satisfies Null
+    {
+        switch (expresssion)
+        case (is FunctionCall)
+        {
+            assert (is FunctionCall resolved_function_call = resolveParameterSymbols(expresssion, parameters));
+            return resolved_function_call;
+        }
+        case (is TypeSpec)
+        {
+            return resolveParameterSymbolsForTypeSpec(expresssion, parameters);
+        }
+        case (is SymbolName)
+        {
+            return resolveParameter<Expression, Nothing>(expresssion.name, expresssion, parameters);
+        }
+        case (is Literal|Absent)
+        {
+            return expresssion;
+        }
+    }
+
     switch (input)
     case (is Field)
     {
         value type = if (exists input_type = input.type) then resolveParameterSymbolsForTypeSpec(input_type, parameters) else null;
-
-        value original_default_expression = input.defaultValue;
-        Expression? default_value;
-        switch (original_default_expression)
-        case (is FunctionCall)
-        {
-            assert (is FunctionCall resolved_function_call = resolveParameterSymbols(original_default_expression, parameters));
-            default_value = resolved_function_call;
-        }
-        case (is TypeSpec)
-        {
-            default_value = resolveParameterSymbolsForTypeSpec(original_default_expression, parameters);
-        }
-        case (is SymbolName)
-        {
-            default_value = resolveParameter<Expression, Nothing>(original_default_expression.name, original_default_expression, parameters);
-        }
-        case (is Literal?)
-        {
-            default_value = original_default_expression;
-        }
 
         // TODO: Process annotations
         AnnotationUse[] annotations = input.annotations;
@@ -209,19 +213,26 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
         {
             fieldName = input.name;
             fieldType = type;
-            fieldDefaultValue = default_value;
+            fieldDefaultValue = resolveExpression<Expression>(input.defaultValue);
             fieldAnnotations = annotations;
             fieldModifiers = input.modifiers;
         };
     }
     case (is FunctionCall)
     {
-        // TODO
-        return input;
+        value funcParams = input.parameters.collect(resolveExpression<Expression, Nothing>);
+        value funcArgs = input.arguments.collect(resolveExpression<Expression, Nothing>);
+        return functionCall
+        {
+            funcName = input.name;
+            packag = input.inPackage;
+            typeParameters = funcParams;
+            invokationArguments = funcArgs;
+        };
     }
 }
 
-TypeSpec? resolveParameterSymbolsForTypeSpec(TypeSpec typeSpec, Map<String, Expression> parameters)
+TypeSpec resolveParameterSymbolsForTypeSpec(TypeSpec typeSpec, Map<String, Expression> parameters)
 {
     switch (typeSpec)
     case (is MultiTypeSpec)
@@ -278,7 +289,9 @@ void resolve_template_expressions()
     value testCases = HashMap
     {
         field("foo", singleTypeSpec("SomeType"), valueSymbol("num1"), [], HashSet { abstractStruct })
-                ->field("foo", singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])), integerLiteral(168), [], HashSet { abstractStruct })
+                ->field("foo", singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])), integerLiteral(168), [], HashSet { abstractStruct }),
+        functionCall("bar", [ singleTypeSpec("foo"), multiTypeSpec([ singleTypeSpec("hi"), singleTypeSpec("SomeType") ]) ], [ stringLiteral("hello"), valueSymbol("str1") ])
+                ->functionCall("bar", [ singleTypeSpec("foo"), multiTypeSpec([ singleTypeSpec("hi"), singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])) ]) ], [ stringLiteral("hello"), stringLiteral("some string") ])
     };
 
     value errors = LinkedList<[Field|FunctionCall, Field|FunctionCall, Field|FunctionCall]>();
