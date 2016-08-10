@@ -175,12 +175,11 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
         // No parameters to replace
         return input;
     }
-    print("grdhhseigfsesdfeshig");
 
     switch (input)
     case (is Field)
     {
-        value type = resolveParameter("", input.type, parameters);
+        value type = if (exists input_type = input.type) then resolveParameterSymbolsForTypeSpec(input_type, parameters) else null;
 
         value original_default_expression = input.defaultValue;
         Expression? default_value;
@@ -196,7 +195,7 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
         }
         case (is SymbolName)
         {
-            default_value = resolveParameter(original_default_expression.name, original_default_expression, parameters);
+            default_value = resolveParameter<Expression, Nothing>(original_default_expression.name, original_default_expression, parameters);
         }
         case (is Literal?)
         {
@@ -217,6 +216,7 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
     }
     case (is FunctionCall)
     {
+        // TODO
         return input;
     }
 }
@@ -233,22 +233,24 @@ TypeSpec? resolveParameterSymbolsForTypeSpec(TypeSpec typeSpec, Map<String, Expr
                 {
                     throw Exception("Multi-TypeSpec ``typeSpec`` had part ``typeSpec`` that is considered a template parameter, but is generic.");
                 }
-                return resolveParameter(typeSpec.name, typeSpec, parameters) else typeSpec;
+                return resolveParameter<SingleTypeSpec, Nothing>(typeSpec.name, typeSpec, parameters);
             }));
         }
         case (is SingleTypeSpec)
         {
-            return resolveParameter(typeSpec.name, typeSpec, parameters);
+            return resolveParameter<TypeSpec, Nothing>(typeSpec.name, typeSpec, parameters);
         }
 }
 
 /// Silly name
-Parameter? resolveParameter<Parameter>(String? name, Parameter original, Map<String, Expression> parameters)
+Parameter|Absent resolveParameter<Parameter, Absent = Null>(String? name, Parameter|Absent original, Map<String, Expression> parameters)
+        given Parameter satisfies Expression
+        given Absent satisfies Null
 {
-    if (exists name, name in parameters)
+    if (exists name, parameters.defines(name))
     {
         value replacement_value = parameters[name];
-        if (is Parameter? replacement_value)
+        if (is Parameter replacement_value)
         {
             return replacement_value;
         }
@@ -275,15 +277,15 @@ void resolve_template_expressions()
 
     value testCases = HashMap
     {
-        field("num1", singleTypeSpec("SomeType"), valueSymbol("num1"), [], HashSet { abstractStruct })
-                ->field("num1", singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])), integerLiteral(168), [], HashSet { abstractStruct })
+        field("foo", singleTypeSpec("SomeType"), valueSymbol("num1"), [], HashSet { abstractStruct })
+                ->field("foo", singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])), integerLiteral(168), [], HashSet { abstractStruct })
     };
 
     value errors = LinkedList<[Field|FunctionCall, Field|FunctionCall, Field|FunctionCall]>();
     for (_in->_out in testCases)
     {
         value result = resolveParameterSymbols(_in, parameter_map_1);
-        if (!(result == _out))
+        if (!result.equals(_out))
         {
             errors.add([_in, _out, result]);
         }

@@ -112,7 +112,7 @@ interface MultiTypeSpec
     shared formal
     [SingleTypeSpec+] typeSpecs;
 
-    string => typeSpecs*.string.interpose("|").fold("")(plus<String>);
+    string => typeSpecs*.string.interpose("|").fold("")(plus);
 
     shared actual
     Integer hash
@@ -127,7 +127,7 @@ interface MultiTypeSpec
     {
         if (is MultiTypeSpec that)
         {
-            return typeSpecs==that.typeSpecs;
+            return typeSpecs.equals(that.typeSpecs);
         }
         else
         {
@@ -170,9 +170,9 @@ interface SingleTypeSpec
     {
         if (is SingleTypeSpec that)
         {
-            return name==that.name &&
-                inPackage==that.inPackage &&
-                parameters==that.parameters;
+            return name.equals(that.name) &&
+                inPackage.equals(that.inPackage) &&
+                parameters.equals(that.parameters);
         }
         else
         {

@@ -22,6 +22,26 @@ interface StringLiteral
     shared actual formal
     String contents;
 
+    shared actual
+    Boolean equals(Object that)
+    {
+        if (is Literal that)
+        {
+            return if (exists that_content = that.contents) then contents.equals(that_content) else className(this).equals(className(that));
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    shared actual
+    Integer hash
+    {
+        variable value hash = contents.hash;
+        return hash;
+    }
+
     string => "\"``contents``\"";
 }
 
@@ -31,6 +51,26 @@ interface IntegerLiteral
 {
     shared actual formal
     Integer contents;
+
+    shared actual
+    Boolean equals(Object that)
+    {
+        if (is Literal that)
+        {
+            return if (exists that_content = that.contents) then contents.equals(that_content) else className(this).equals(className(that));
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    shared actual
+    Integer hash
+    {
+        variable value hash = contents.hash;
+        return hash;
+    }
 
     string => contents.string;
 }
@@ -61,6 +101,7 @@ shared
 StringLiteral stringLiteral(String str)
 {
     object stringLiteral
+            extends Object()
             satisfies StringLiteral
     {
         contents = str;
@@ -72,6 +113,7 @@ shared
 IntegerLiteral integerLiteral(Integer int)
 {
     object integerLiteral
+            extends Object()
             satisfies IntegerLiteral
     {
         contents = int;

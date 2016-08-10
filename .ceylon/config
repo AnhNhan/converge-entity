@@ -4,3 +4,10 @@ encoding=UTF-8
 
 [repositories]
 lookup=C:\\Users\\AnhNhan\\SkyDrive\\dev\\anhnhan-utils\\modules
+
+[compiler]
+source=source
+resource=resource
+
+[formattool]
+profile=std

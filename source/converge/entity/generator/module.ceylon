@@ -16,9 +16,9 @@ module converge.entity.generator "dev"
     import converge.entity.model "dev";
     import de.anhnhan.parser "dev";
 
-    import ceylon.collection "1.2.0";
-    import ceylon.file "1.2.0";
+    import ceylon.collection "1.2.2";
+    import ceylon.file "1.2.2";
 
     optional
-    import ceylon.test "1.2.0";
+    import ceylon.test "1.2.2";
 }
