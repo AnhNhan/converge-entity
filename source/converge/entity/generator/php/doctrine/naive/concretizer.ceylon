@@ -48,7 +48,6 @@ import de.anhnhan.utils {
     assertHasAssertionError
 }
 
-// TODO: Resolve template parameters
 Struct concretizeStruct(
     Struct struct,
     Struct? getParents(SingleTypeSpec typeSpec),
@@ -85,9 +84,20 @@ Struct concretizeStruct(
             throw Exception("Struct ``struct.name`` concretizes struct ``concretizedParent.name``, which is not abstract.");
         }
 
+        // TODO: Error handling
+        value zipped = zipEntries(
+            concretizedParent.parameters,
+            parentSpec.parameters.chain({ null }.repeat(concretizedParent.parameters.size))
+        );
+        value template_parameters = HashMap
+        {
+            entries = { for (entry in zipped) if (exists expr = (if (exists item = entry.item) then item else entry.key.defaultValue)) entry.key.name->expr };
+        };
+        value parent_members = concretizedParent.members.map((member) => resolveParameterSymbols(member, template_parameters));
+
         value member_names = original_fields*.name;
-        value inherited_fields = pickOfType<Field>(concretizedParent.members);
-        value inherited_funcalls = pickOfType<FunctionCall>(concretizedParent.members);
+        value inherited_fields = pickOfType<Field>(parent_members);
+        value inherited_funcalls = pickOfType<FunctionCall>(parent_members);
 
         appended_members.addAll(
             inherited_fields
@@ -177,30 +187,6 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
         return input;
     }
 
-    function resolveExpression<Expr, Absent = Null>(Expr|Absent expresssion)
-            given Expr satisfies Expression
-            given Absent satisfies Null
-    {
-        switch (expresssion)
-        case (is FunctionCall)
-        {
-            assert (is FunctionCall resolved_function_call = resolveParameterSymbols(expresssion, parameters));
-            return resolved_function_call;
-        }
-        case (is TypeSpec)
-        {
-            return resolveParameterSymbolsForTypeSpec(expresssion, parameters);
-        }
-        case (is SymbolName)
-        {
-            return resolveParameter<Expression, Nothing>(expresssion.name, expresssion, parameters);
-        }
-        case (is Literal|Absent)
-        {
-            return expresssion;
-        }
-    }
-
     switch (input)
     case (is Field)
     {
@@ -213,15 +199,15 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
         {
             fieldName = input.name;
             fieldType = type;
-            fieldDefaultValue = resolveExpression<Expression>(input.defaultValue);
+            fieldDefaultValue = resolveExpression<Expression>(input.defaultValue, parameters);
             fieldAnnotations = annotations;
             fieldModifiers = input.modifiers;
         };
     }
     case (is FunctionCall)
     {
-        value funcParams = input.parameters.collect(resolveExpression<Expression, Nothing>);
-        value funcArgs = input.arguments.collect(resolveExpression<Expression, Nothing>);
+        value funcParams = input.parameters.collect((param) => resolveExpression<Expression, Nothing>(param, parameters));
+        value funcArgs = input.arguments.collect((arg) => resolveExpression<Expression, Nothing>(arg, parameters));
         return functionCall
         {
             funcName = input.name;
@@ -232,29 +218,73 @@ Field|FunctionCall resolveParameterSymbols(Field|FunctionCall input, Map<String,
     }
 }
 
+Expression|Absent resolveExpression<Expr, Absent = Null>(Expr|Absent expresssion, Map<String, Expression> parameters)
+        given Expr satisfies Expression
+        given Absent satisfies Null
+{
+    switch (expresssion)
+    case (is FunctionCall)
+    {
+        assert (is FunctionCall resolved_function_call = resolveParameterSymbols(expresssion, parameters));
+        return resolved_function_call;
+    }
+    case (is TypeSpec)
+    {
+        return resolveParameterSymbolsForTypeSpec(expresssion, parameters);
+    }
+    case (is SymbolName)
+    {
+        return resolveParameter<Expression, Nothing>(expresssion.name, expresssion, parameters);
+    }
+    case (is Literal|Absent)
+    {
+        return expresssion;
+    }
+}
+
 TypeSpec resolveParameterSymbolsForTypeSpec(TypeSpec typeSpec, Map<String, Expression> parameters)
 {
+    // TODO: Error handling
     switch (typeSpec)
     case (is MultiTypeSpec)
     {
-        return multiTypeSpec(typeSpec.typeSpecs.collect(
-            (SingleTypeSpec typeSpec)
+        value typeSpecs = typeSpec.typeSpecs.flatMap(
+            (SingleTypeSpec _typeSpec)
             {
-                if (typeSpec.name in parameters, !typeSpec.parameters.empty)
+                if (parameters.defines(_typeSpec.name), !_typeSpec.parameters.empty)
                 {
-                    throw Exception("Multi-TypeSpec ``typeSpec`` had part ``typeSpec`` that is considered a template parameter, but is generic.");
+                    throw Exception("Multi-TypeSpec ``typeSpec`` had part ``_typeSpec`` that is considered a template parameter, but is generic.");
                 }
-                return resolveParameter<SingleTypeSpec, Nothing>(typeSpec.name, typeSpec, parameters);
-            }));
-        }
-        case (is SingleTypeSpec)
-        {
-            return resolveParameter<TypeSpec, Nothing>(typeSpec.name, typeSpec, parameters);
-        }
+                value result = resolveParameter<TypeSpec, Nothing>(_typeSpec.name, _typeSpec, parameters);
+                switch (result)
+                case (is SingleTypeSpec)
+                {
+                    return { result };
+                }
+                case (is MultiTypeSpec)
+                {
+                    return result.typeSpecs;
+                }
+                else
+                {
+                    throw Exception("Type failure: Got a value in type spec context.");
+                }
+            });
+        "We know that it's one+ or bust."
+        assert(nonempty seq = typeSpecs.sequence());
+        return multiTypeSpec(seq);
+    }
+    case (is SingleTypeSpec)
+    {
+        value replacement = resolveParameter<TypeSpec, Nothing>(typeSpec.name, typeSpec, parameters);
+        "Template parameter failure: Replacing a value in type spec context with a non-typespec value."
+        assert(is TypeSpec replacement);
+        return replacement;
+    }
 }
 
 /// Silly name
-Parameter|Absent resolveParameter<Parameter, Absent = Null>(String? name, Parameter|Absent original, Map<String, Expression> parameters)
+Expression|Absent resolveParameter<Parameter, Absent = Null>(String|Absent name, Parameter|Absent original, Map<String, Expression> parameters)
         given Parameter satisfies Expression
         given Absent satisfies Null
 {
@@ -263,7 +293,25 @@ Parameter|Absent resolveParameter<Parameter, Absent = Null>(String? name, Parame
         value replacement_value = parameters[name];
         if (is Parameter replacement_value)
         {
-            return replacement_value;
+            switch (replacement_value)
+            case (is SingleTypeSpec)
+            {
+                // Retain original parameters
+                assert(is SingleTypeSpec original);
+                if (!original.parameters.empty && !replacement_value.parameters.empty) {
+                    throw Exception("Both replaced and original typespec define parameters. Only the original parameters will be considered.");
+                }
+                value spec = singleTypeSpec(
+                    replacement_value.name,
+                    original.parameters.collect((param) => resolveExpression<Expression, Nothing>(param, parameters)),
+                    replacement_value.inPackage
+                );
+                return spec;
+            }
+            case (is Literal | SymbolName | MultiTypeSpec | FunctionCall)
+            {
+                return replacement_value;
+            }
         }
         throw Exception();
     }
@@ -283,15 +331,16 @@ void resolve_template_expressions()
         "num1"->integerLiteral(168),
         "str1"->stringLiteral("some string"),
         "name1"->stringLiteral("some_name"),
-        "SomeType"->singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"]))
+        "SomeType"->singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])),
+        "MultiType"->multiTypeSpec([ singleTypeSpec("HollaType", [ stringLiteral("hello") ]) ])
     };
 
     value testCases = HashMap
     {
         field("foo", singleTypeSpec("SomeType"), valueSymbol("num1"), [], HashSet { abstractStruct })
                 ->field("foo", singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])), integerLiteral(168), [], HashSet { abstractStruct }),
-        functionCall("bar", [ singleTypeSpec("foo"), multiTypeSpec([ singleTypeSpec("hi"), singleTypeSpec("SomeType") ]) ], [ stringLiteral("hello"), valueSymbol("str1") ])
-                ->functionCall("bar", [ singleTypeSpec("foo"), multiTypeSpec([ singleTypeSpec("hi"), singleTypeSpec("ReallySomeType", [], packageStmt(["your", "mum"])) ]) ], [ stringLiteral("hello"), stringLiteral("some string") ])
+        functionCall("bar", [ singleTypeSpec("foo"), multiTypeSpec([ singleTypeSpec("hi"), singleTypeSpec("MultiType") ]) ], [ stringLiteral("hello"), valueSymbol("str1") ])
+                ->functionCall("bar", [ singleTypeSpec("foo"), multiTypeSpec([ singleTypeSpec("hi"), singleTypeSpec("HollaType", [ stringLiteral("hello") ]) ]) ], [ stringLiteral("hello"), stringLiteral("some string") ])
     };
 
     value errors = LinkedList<[Field|FunctionCall, Field|FunctionCall, Field|FunctionCall]>();
