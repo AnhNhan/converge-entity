@@ -96,7 +96,8 @@ import de.anhnhan.parser.parsec.string {
     backslashEscapable,
     digit,
     keyword,
-    one_or_more_chars
+    one_or_more_chars,
+    keyword2
 }
 import de.anhnhan.parser.parsec.test {
     assertCanParseWithNothingLeft,
@@ -113,7 +114,9 @@ StringParser<Struct|Alias|FunctionCall> pTop
             pFunctionCall
         );
 
+"Token starting a list of type template declaration or parameter list."
 StringParser<Character> typeSpecGenericStart = literal('<');
+"Token ending a list of type template declaration or parameter list."
 StringParser<Character> typeSpecGenericEnd = literal('>');
 
 StringParser<Character> funcCallStart = literal('(');
@@ -474,6 +477,7 @@ StringParser<AnnotationUse> pAnnotationUse
                 return annotationUse(String(element));
             }));
 
+"Either parse a template parameter list, or nothing at all (left aways)."
 StringParseResult<Expression[]> optTypeParameters({Character*} input)
 {
     value nextChar = typeSpecGenericStart(input);
@@ -496,6 +500,8 @@ void testOptTypeParamaters()
         "",
         "<foo>",
         "<foo, bar>",
+        "<Foo, bar>",
+        "<Foo<foo, Bar>, bar>",
         "<foo, bar()>"
     }.collect(assertCanParseWithNothingLeft(optTypeParameters));
 }
@@ -678,7 +684,28 @@ StringParser<IntegerLiteral> pInteger
         = apply(one_or_more_chars(digit), pipe2(parseInteger of Integer?(String), (Integer? _) => integerLiteral(_ else nothing)));
 
 StringParser<BooleanLiteral> pBool
-        = apply(or(keyword("true"), keyword("false")), (Character[] _) => _ == "true".sequence() then trueLiteral else falseLiteral);
+        = apply(or(keyword2("true"), keyword2("false")), (Character[] _) => _ == "true".sequence() then trueLiteral else falseLiteral);
 
 StringParser<NullLiteral> pNull
-        = apply(keyword("null"), (Anything _) => nullLiteral);
+        = apply(keyword2("null"), (Anything _) => nullLiteral);
+
+test
+void testKeywordExpr()
+{
+    {
+        "true",
+        "false"
+    }.collect(assertCanParseWithNothingLeft(pBool));
+
+    {
+        "True"
+    }.collect(assertCantParse(pBool));
+
+    {
+        "null"
+    }.collect(assertCanParseWithNothingLeft(pNull));
+
+    {
+        "Null"
+    }.collect(assertCantParse(pNull));
+}
